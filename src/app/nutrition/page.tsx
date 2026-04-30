@@ -1,6 +1,7 @@
 'use client'
 
 import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -24,13 +25,23 @@ import { Badge } from '@/components/ui/badge'
 export default function NutritionPage() {
   const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
   
-  const { messages, input, handleInputChange, handleSubmit, setMessages, isLoading } = useChat({
-    api: '/api/ai/nutrition',
-    onError: (err) => {
+  const { messages, sendMessage, setMessages, status } = useChat({
+    transport: new DefaultChatTransport({ api: '/api/ai/nutrition' }),
+    onError: (err: Error) => {
       console.error('Chat Error:', err)
       toast.error('Could not reach the AI Nutritionist. Please check your connection.')
     }
   })
+
+  const isLoading = status === 'streaming' || status === 'submitted'
+  const [input, setInput] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+    sendMessage({ text: input.trim() })
+    setInput('')
+  }
   
   const [sessions] = useState([
     { id: '1', title: 'High-Protein Breakfast', date: 'Yesterday' },
@@ -134,7 +145,7 @@ export default function NutritionPage() {
                     <Button 
                       key={i} 
                       variant="outline" 
-                      onClick={() => handleInputChange({ target: { value: topic } } as any)}
+                      onClick={() => setInput(topic)}
                       className="rounded-full bg-white/5 border-white/5 hover:border-primary/30 h-10 px-5 text-xs font-bold text-muted-foreground hover:text-primary transition-all"
                     >
                       {topic}
@@ -205,7 +216,7 @@ export default function NutritionPage() {
                 
                 <Input 
                   value={input}
-                  onChange={handleInputChange}
+                  onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask your nutritionist..." 
                   className="flex-1 bg-transparent border-none focus-visible:ring-0 text-white text-base h-14 px-2"
                 />

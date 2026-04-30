@@ -40,8 +40,8 @@ export default function LoginPage() {
     }, 800)
   }
 
-  const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.09 } } }
-  const fadeUp = {
+  const stagger: any = { hidden: {}, visible: { transition: { staggerChildren: 0.09 } } }
+  const fadeUp: any = {
     hidden:  { opacity: 0, y: 20, filter: 'blur(6px)' },
     visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: [0.21, 0.61, 0.35, 1] } }
   }

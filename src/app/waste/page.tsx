@@ -201,12 +201,10 @@ export default function WasteTrackerPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
             <Dialog open={isLogModalOpen} onOpenChange={setIsLogModalOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  className="rounded-[2rem] h-20 px-8 font-black text-xs gap-4 bg-white text-black hover:bg-primary hover:text-white shadow-2xl transition-all hover:scale-[1.02] active:scale-95 group uppercase tracking-widest"
-                >
-                  <Zap className="h-6 w-6 fill-current group-hover:animate-bounce" /> Feed Data Log
-                </Button>
+              <DialogTrigger
+                className="rounded-[2rem] h-20 px-8 font-black text-xs gap-4 bg-white text-black hover:bg-primary hover:text-white shadow-2xl transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-widest flex items-center justify-center"
+              >
+                <Zap className="h-6 w-6 fill-current" /> Feed Data Log
               </DialogTrigger>
               <DialogContent className="glass-dark border-white/10 rounded-[2.5rem] p-10 sm:max-w-md">
                 <DialogHeader>

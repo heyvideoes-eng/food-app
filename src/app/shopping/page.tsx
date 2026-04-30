@@ -237,7 +237,7 @@ export default function ShoppingListPage() {
             <RotateCcw className="h-4 w-4" />
             Clear Checked
           </Button>
-          {items.some(i => i.status === 'bought') && (
+          {(items as any[]).some((i: any) => i.status === 'bought') && (
             <Button 
               className="rounded-2xl h-12 px-6 font-bold gap-2 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
               onClick={() => syncMutation.mutate()}
@@ -293,7 +293,7 @@ export default function ShoppingListPage() {
         </div>
         
         <div className="grid gap-3">
-          {items.map(item => {
+          {(items as any[]).map((item: any) => {
             const isBought = item.status === 'bought'
             return (
               <div 

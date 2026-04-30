@@ -25,7 +25,7 @@ export default function Home() {
     hidden:  { opacity: 0, y: 32, filter: 'blur(8px)' },
     visible: { 
       opacity: 1, y: 0, filter: 'blur(0px)',
-      transition: { duration: 0.9, ease: [0.21, 0.61, 0.35, 1] }
+      transition: { duration: 0.9, ease: [0.21, 0.61, 0.35, 1] as const }
     }
   }
 
@@ -106,7 +106,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.07, duration: 0.6, ease: [0.21, 0.61, 0.35, 1] }}
+              transition={{ delay: i * 0.07, duration: 0.6, ease: [0.21, 0.61, 0.35, 1] as const }}
             >
               <Link
                 href={f.href}
@@ -135,7 +135,7 @@ export default function Home() {
               initial={{ opacity: 0, x: i % 2 === 0 ? -40 : 40 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 1, ease: [0.21, 0.61, 0.35, 1] }}
+              transition={{ duration: 1, ease: [0.21, 0.61, 0.35, 1] as const }}
               className={`grid grid-cols-2 gap-16 items-center ${i % 2 !== 0 ? 'direction-rtl' : ''}`}
             >
               <div className={`flex flex-col ${i % 2 !== 0 ? 'order-2' : 'order-1'}`}>
@@ -157,7 +157,7 @@ export default function Home() {
                 initial={{ opacity: 0, scale: 0.92, rotate: i % 2 === 0 ? 3 : -3 }}
                 whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
                 viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 1.2, ease: [0.21, 0.61, 0.35, 1] }}
+                transition={{ duration: 1.2, ease: [0.21, 0.61, 0.35, 1] as const }}
                 className={`relative aspect-square rounded-[3rem] overflow-hidden border ${f.border} ${f.bg} ${i % 2 !== 0 ? 'order-1' : 'order-2'}`}
               >
                 <div className="absolute inset-0 flex items-center justify-center opacity-20">
