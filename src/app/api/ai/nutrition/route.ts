@@ -8,22 +8,28 @@ export async function POST(req: Request) {
     const { messages } = await req.json()
     
     const cookieStore = await cookies()
-    const isDemoMode = cookieStore.get('demo-mode')?.value === 'true' || !process.env.NEXT_PUBLIC_SUPABASE_URL
+    const isDemoMode = cookieStore.get('demo-mode')?.value === 'true' || !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost')
     
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    let user = null
+    if (!isDemoMode) {
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    }
 
     if (!user && !isDemoMode) {
       return new Response('Unauthorized', { status: 401 })
     }
 
-    // Fetch fridge items for context
-    const { data: fridgeItems } = await supabase
-      .from('fridge_items')
-      .select('name, quantity, unit, expiry_date')
-      .order('expiry_date', { ascending: true })
-
-    const inventoryContext = (fridgeItems as any[])?.map((i: any) => `- ${i.name} (${i.quantity} ${i.unit}), Expiry: ${i.expiry_date}`).join('\n') || 'No items in fridge.'
+    // Fetch fridge items for context (skip in demo mode — no DB available)
+    let inventoryContext = 'No items in fridge.'
+    if (!isDemoMode) {
+      const { data: fridgeItems } = await supabase
+        .from('fridge_items')
+        .select('name, quantity, unit, expiry_date')
+        .order('expiry_date', { ascending: true })
+      inventoryContext = (fridgeItems as any[])?.map((i: any) => `- ${i.name} (${i.quantity} ${i.unit}), Expiry: ${i.expiry_date}`).join('\n') || 'No items in fridge.'
+    }
 
     const systemMessage = `You are FridgeMind's AI Nutritionist and Global Food Assistant. 
 You provide healthy eating advice, analyze meal descriptions, and give calorie/macro estimates.

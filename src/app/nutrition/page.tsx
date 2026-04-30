@@ -25,10 +25,10 @@ export default function NutritionPage() {
   const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
   
   const { messages, input, handleInputChange, handleSubmit, setMessages, isLoading } = useChat({
-    url: '/api/recipe/nutrition',
+    api: '/api/ai/nutrition',
     onError: (err) => {
       console.error('Chat Error:', err)
-      toast.error('Could not reach the Recipe Engine. Please check your connection.')
+      toast.error('Could not reach the AI Nutritionist. Please check your connection.')
     }
   })
   

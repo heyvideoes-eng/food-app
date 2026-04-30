@@ -10,27 +10,31 @@ export async function POST(req: Request) {
     const { preferences, input: creativePrompt, selectedIngredientIds, selectedItems: manualItems } = await req.json()
     
     const cookieStore = await cookies()
-    const isDemoMode = cookieStore.get('demo-mode')?.value === 'true' || !process.env.NEXT_PUBLIC_SUPABASE_URL
+    const isDemoMode = cookieStore.get('demo-mode')?.value === 'true' || !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost')
     
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    let user = null
+    if (!isDemoMode) {
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    }
 
     if (!user && !isDemoMode) {
       return new Response('Unauthorized', { status: 401 })
     }
 
-    // Fetch all fridge items if not provided manually
-    let selectedItems = manualItems
-    let otherItems = []
+    // Fetch all fridge items if not provided manually and not in demo mode
+    let selectedItems = manualItems || []
+    let otherItems: any[] = []
 
-    if (!selectedItems || selectedItems.length === 0) {
+    if (!isDemoMode && (!selectedItems || selectedItems.length === 0)) {
       const { data: allFridgeItems } = await supabase
         .from('fridge_items')
         .select('id, name, quantity, unit, expiry_date, category')
         .order('expiry_date', { ascending: true })
 
-      selectedItems = (allFridgeItems as any[])?.filter((item: any) => selectedIngredientIds.includes(item.id)) || []
-      otherItems = (allFridgeItems as any[])?.filter((item: any) => !selectedIngredientIds.includes(item.id)) || []
+      selectedItems = (allFridgeItems as any[])?.filter((item: any) => (selectedIngredientIds || []).includes(item.id)) || []
+      otherItems = (allFridgeItems as any[])?.filter((item: any) => !(selectedIngredientIds || []).includes(item.id)) || []
     }
 
     const systemPrompt = `You are FridgeMind's Intelligent Recipe Engine, a world-class culinary expert focused on food waste reduction and smart home cooking.

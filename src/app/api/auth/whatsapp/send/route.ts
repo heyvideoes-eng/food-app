@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
 
-// Use a simple local cache or a separate table for OTPs in production
-// For now, we'll implement the logic to send the OTP via Twilio
+// NOTE: For Twilio WhatsApp Sandbox (free tier), the recipient number MUST first
+// opt-in by sending "join <sandbox-name>" to +14155238886 on WhatsApp.
+// Otherwise Twilio will return a 63016 error. See: https://twilio.com/console/sms/whatsapp/sandbox
 export async function POST(req: Request) {
   try {
     const { phone } = await req.json()

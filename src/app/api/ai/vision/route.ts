@@ -11,10 +11,14 @@ export async function POST(req: Request) {
     const { imageUrl } = await req.json()
     
     const cookieStore = await cookies()
-    const isDemoMode = cookieStore.get('demo-mode')?.value === 'true' || !process.env.NEXT_PUBLIC_SUPABASE_URL
+    const isDemoMode = cookieStore.get('demo-mode')?.value === 'true' || !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('localhost')
     
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    let user = null
+    if (!isDemoMode) {
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    }
 
     if (!user && !isDemoMode) {
       return new Response('Unauthorized', { status: 401 })

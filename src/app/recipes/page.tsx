@@ -54,6 +54,7 @@ export default function RecipesPage() {
   const [selectedItems, setSelectedItems] = useState<any[]>([])
   
   const supabase = createClient()
+  const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
 
   useEffect(() => {
     async function fetchSelectedItems() {
