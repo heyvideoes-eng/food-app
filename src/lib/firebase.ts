@@ -10,9 +10,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
+// Initialize Firebase only if keys exist
+const app = (typeof window !== 'undefined' && firebaseConfig.apiKey) 
+  ? (getApps().length > 0 ? getApp() : initializeApp(firebaseConfig))
+  : null;
+
+const auth = app ? getAuth(app) : ({} as any);
 const googleProvider = new GoogleAuthProvider();
 
 export { auth, googleProvider, signInWithPopup };
