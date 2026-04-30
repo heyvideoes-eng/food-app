@@ -15,35 +15,44 @@ import {
   Bell,
   User,
   Plus,
-  Flame
+  Flame,
+  MoreHorizontal,
+  X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Input } from '@/components/ui/input'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { NotificationCenter } from './notification-center'
 import { AddItemModal } from '../modals/add-item-modal'
 import { useStore } from '@/lib/store'
 
-const navItems = [
-  { name: 'Home', href: '/', icon: Home, status: '' },
-  { name: 'Fridge', href: '/fridge', icon: Refrigerator, status: '3 expiring' },
-  { name: 'Nutrition', href: '/nutrition', icon: MessageCircleHeart, status: '' },
-  { name: 'Recipes', href: '/recipes', icon: ChefHat, status: '' },
-  { name: 'Waste', href: '/waste', icon: Trash2, status: '' },
-  { name: 'Shop', href: '/shopping', icon: ShoppingCart, status: '' },
-  { name: 'Rewards', href: '/rewards', icon: Award, status: '+15 pts today' },
+// Primary 5 nav items shown in the bottom bar
+const primaryNav = [
+  { name: 'Home',      href: '/',          icon: Home },
+  { name: 'Fridge',   href: '/fridge',     icon: Refrigerator },
+  { name: 'Recipes',  href: '/recipes',    icon: ChefHat },
+  { name: 'Waste',    href: '/waste',      icon: Trash2 },
+  { name: 'Shop',     href: '/shopping',   icon: ShoppingCart },
 ]
+
+// Overflow items shown in the "More" sheet
+const overflowNav = [
+  { name: 'Nutrition', href: '/nutrition', icon: MessageCircleHeart },
+  { name: 'Rewards',   href: '/rewards',   icon: Award },
+  { name: 'Profile',   href: '/profile',   icon: User },
+]
+
+// All nav for desktop sidebar
+const allNav = [...primaryNav.slice(1), ...overflowNav]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [searchFocused, setSearchFocused] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isReady, setIsReady] = useState(false)
+  const [showMore, setShowMore] = useState(false)
   const { setIsAddModalOpen } = useStore()
   
   const isLandingPage = pathname === '/'
@@ -58,6 +67,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     setIsReady(true)
   }, [pathname, router])
+
+  // Close more sheet on route change
+  useEffect(() => { setShowMore(false) }, [pathname])
 
   const handleLogout = () => {
     localStorage.removeItem('fridgemind_user')
@@ -77,9 +89,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isLoginPage) return <>{children}</>
 
+  const currentPageName = [...primaryNav, ...overflowNav].find(i => 
+    i.href === pathname || (i.href !== '/' && pathname.startsWith(i.href))
+  )?.name || 'Dashboard'
+
   return (
     <div className="flex min-h-screen w-full bg-transparent text-[#f1f1f1] selection:bg-primary/30 font-sans">
-      {/* Desktop Sidebar - Hidden on landing page for full immersion */}
+      
+      {/* ─── Desktop Sidebar ─────────────────────────────────────── */}
       {!isLandingPage && (
         <aside className="hidden lg:flex flex-col w-72 border-r border-white/5 bg-black/40 backdrop-blur-3xl p-6 h-screen sticky top-0 z-20">
           <div className="flex items-center gap-3 px-2 mb-10 group cursor-pointer" onClick={() => router.push('/')}>
@@ -104,7 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
-            {navItems.map((item) => {
+            {[{ name: 'Home', href: '/', icon: Home }, ...allNav].map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
               return (
                 <Link
@@ -118,14 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <div className="flex items-center gap-4">
                     <item.icon className={`h-5 w-5 transition-transform duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                    <div className="flex flex-col">
-                      <span className="font-bold text-[14px] tracking-tight">{item.name}</span>
-                      {item.status && (
-                        <span className={`text-[10px] font-medium opacity-60 tracking-wider ${isActive ? 'text-primary' : ''}`}>
-                          {item.status}
-                        </span>
-                      )}
-                    </div>
+                    <span className="font-bold text-[14px] tracking-tight">{item.name}</span>
                   </div>
                   {isActive && (
                     <motion.div 
@@ -146,7 +156,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }`}
             >
               <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden">
-                 <img src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=Rishi`} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=Rishi`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold truncate">{user?.displayName || 'Eco Guardian'}</span>
@@ -170,64 +180,63 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative">
-        {/* Navigation Overlays for Landing Page */}
+      {/* ─── Main Content ─────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col relative min-w-0">
+
+        {/* Landing page nav — mobile-friendly */}
         {isLandingPage && (
-           <nav className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-12 z-50 pointer-events-none">
-              <div className="flex items-center gap-3 pointer-events-auto">
-                <Refrigerator className="h-6 w-6 text-white" />
-                <span className="text-xl font-heading font-bold text-white tracking-widest uppercase">FridgeMind</span>
+          <nav className="fixed top-0 left-0 w-full flex items-center justify-between px-5 md:px-12 py-4 md:py-6 z-50">
+            <div className="flex items-center gap-2">
+              <Refrigerator className="h-5 w-5 text-primary" />
+              <span className="text-base md:text-xl font-heading font-bold text-white tracking-widest uppercase">FridgeMind</span>
+            </div>
+            {/* Mobile: single Access button only */}
+            <div className="flex items-center gap-4 md:gap-8">
+              <div className="hidden md:flex items-center gap-8">
+                {primaryNav.filter(i => i.name !== 'Home').slice(0, 3).map(item => (
+                  <Link key={item.name} href={item.href} className="text-[10px] tracking-[0.3em] uppercase font-bold text-white/40 hover:text-white transition-colors">
+                    {item.name}
+                  </Link>
+                ))}
               </div>
-              <div className="flex items-center gap-8 pointer-events-auto">
-                 {navItems.filter(i => i.name !== 'Home').slice(0, 3).map(item => (
-                   <Link key={item.name} href={item.href} className="text-[10px] tracking-[0.3em] uppercase font-bold text-white/40 hover:text-white transition-colors">
-                      {item.name}
-                   </Link>
-                 ))}
-                 <Link href="/login" className="px-6 py-2 rounded-full glass text-[10px] tracking-[0.3em] uppercase font-bold text-white">
-                    Access
-                 </Link>
-              </div>
-           </nav>
+              <Link href="/login" className="px-5 py-2 rounded-full glass text-[11px] tracking-[0.2em] uppercase font-bold text-white border border-white/10 hover:bg-white/10 transition-colors tap-scale">
+                Access
+              </Link>
+            </div>
+          </nav>
         )}
 
         {/* Desktop Content Header */}
         {!isLandingPage && (
           <header className="hidden lg:flex items-center justify-between px-8 py-6 bg-black/10 backdrop-blur-xl sticky top-0 z-40 h-20 border-b border-white/5">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-heading font-bold text-white tracking-tight">
-                {navItems.find(i => i.href === pathname)?.name || 'Dashboard'}
-              </h2>
-            </div>
-
+            <h2 className="text-xl font-heading font-bold text-white tracking-tight">
+              {currentPageName}
+            </h2>
             <div className="flex items-center gap-6">
-              <div className={`relative transition-all duration-500 ${searchFocused ? 'w-80' : 'w-64'}`}>
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search everything..." 
-                  className="pl-11 h-11 bg-white/5 border-white/10 rounded-2xl focus-visible:ring-primary/30 focus-visible:bg-white/10 transition-all duration-500 placeholder:text-muted-foreground/30 text-sm"
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setSearchFocused(false)}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <NotificationCenter />
-              </div>
+              <NotificationCenter />
             </div>
           </header>
         )}
 
         {/* Mobile Content Header */}
         {!isLandingPage && (
-          <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-black/40 backdrop-blur-2xl sticky top-0 z-40 border-b border-white/5">
-            <div className="flex items-center gap-2" onClick={() => router.push('/')}>
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-white/10 glass">
+          <header className="lg:hidden flex items-center justify-between px-5 py-3 bg-black/60 backdrop-blur-2xl sticky top-0 z-40 border-b border-white/5" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
+            <div className="flex items-center gap-2.5 tap-scale" onClick={() => router.push('/')}>
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center border border-white/10">
                 <Refrigerator className="h-4 w-4 text-primary" />
               </div>
-              <span className="text-lg font-heading font-bold text-white tracking-tight">FridgeMind</span>
+              <div>
+                <span className="text-[15px] font-heading font-bold text-white tracking-tight leading-none block">FridgeMind</span>
+                <span className="text-[9px] font-bold text-primary/60 uppercase tracking-widest leading-none">{currentPageName}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary tap-scale"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
               <NotificationCenter />
             </div>
           </header>
@@ -238,61 +247,155 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <AnimatePresence mode="wait">
             <motion.div 
               key={pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5, ease: [0.215, 0.61, 0.355, 1] }}
-              className={isLandingPage ? 'w-full' : 'w-full max-w-7xl mx-auto p-6 md:p-8 lg:p-12 pb-32 lg:pb-12'}
+              initial={{ opacity: 0, y: 16, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.99 }}
+              transition={{ 
+                duration: 0.35,
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
+              className={isLandingPage ? 'w-full' : 'w-full max-w-7xl mx-auto px-4 pt-5 pb-32 md:px-6 lg:px-12 lg:pt-8 lg:pb-12'}
             >
               {children}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Mobile Bottom Nav - Only on non-landing pages */}
+        {/* ─── Mobile Bottom Navigation ─────────────────────────── */}
         {!isLandingPage && (
-          <nav className="lg:hidden fixed bottom-0 w-full bg-black/40 backdrop-blur-3xl px-6 pt-2 pb-safe z-50 border-t border-white/5">
-            <div className="flex justify-between items-center h-16">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex flex-col items-center justify-center transition-all duration-300 relative ${
-                      isActive ? 'text-primary' : 'text-muted-foreground/40'
+          <>
+            {/* "More" sheet that slides up */}
+            <AnimatePresence>
+              {showMore && (
+                <>
+                  {/* Backdrop */}
+                  <motion.div
+                    key="backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                    onClick={() => setShowMore(false)}
+                  />
+                  {/* Sheet */}
+                  <motion.div
+                    key="sheet"
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: '100%', opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 40, mass: 0.8 }}
+                    className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#111113]/95 backdrop-blur-3xl border-t border-white/10 rounded-t-[2rem] overflow-hidden"
+                  >
+                    {/* Drag handle */}
+                    <div className="flex justify-center pt-3 pb-1">
+                      <div className="w-10 h-1 rounded-full bg-white/20" />
+                    </div>
+
+                    <div className="px-6 pb-4 pt-2">
+                      <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-4">More Modules</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {overflowNav.map(item => {
+                          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border transition-all tap-scale ${
+                                isActive 
+                                  ? 'bg-primary/10 border-primary/30 text-primary' 
+                                  : 'bg-white/[0.03] border-white/5 text-white/50 hover:text-white hover:bg-white/5'
+                              }`}
+                            >
+                              <item.icon className="h-6 w-6" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">{item.name}</span>
+                            </Link>
+                          )
+                        })}
+                        <button
+                          onClick={handleLogout}
+                          className="flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-white/5 bg-white/[0.03] text-white/30 hover:text-red-400 hover:border-red-500/20 hover:bg-red-500/5 transition-all tap-scale"
+                        >
+                          <LogOut className="h-6 w-6" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Logout</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* safe area spacing */}
+                    <div style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }} />
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+
+            {/* Bottom Tab Bar */}
+            <nav 
+              className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0d0d0f]/90 backdrop-blur-3xl border-t border-white/[0.06]"
+              style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 10px)' }}
+            >
+              <div className="flex items-center justify-around px-2 h-[62px]">
+                {primaryNav.map(item => {
+                  const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className="flex flex-col items-center justify-center gap-1 flex-1 h-full relative tap-scale"
+                    >
+                      <motion.div
+                        animate={isActive ? { scale: 1.15 } : { scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        className={`flex items-center justify-center w-10 h-7 rounded-xl transition-all duration-300 ${
+                          isActive ? 'bg-primary/15' : ''
+                        }`}
+                      >
+                        <item.icon className={`h-[22px] w-[22px] transition-colors duration-300 ${
+                          isActive ? 'text-primary' : 'text-white/30'
+                        }`} />
+                      </motion.div>
+                      <span className={`text-[9px] font-black uppercase tracking-wider transition-colors duration-300 ${
+                        isActive ? 'text-primary' : 'text-white/20'
+                      }`}>
+                        {item.name}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="mobileActiveDot"
+                          className="absolute -top-[1px] left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-primary shadow-[0_0_8px_2px_rgba(148,163,184,0.4)]"
+                        />
+                      )}
+                    </Link>
+                  )
+                })}
+
+                {/* More button */}
+                <button
+                  onClick={() => setShowMore(v => !v)}
+                  className="flex flex-col items-center justify-center gap-1 flex-1 h-full tap-scale"
+                >
+                  <motion.div
+                    animate={showMore ? { rotate: 90 } : { rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className={`flex items-center justify-center w-10 h-7 rounded-xl transition-all duration-300 ${
+                      showMore ? 'bg-white/10' : ''
                     }`}
                   >
-                    <div className={`transition-all duration-300 ${isActive ? 'scale-110' : ''}`}>
-                      <item.icon className={`h-6 w-6`} />
-                    </div>
-                    {isActive && (
-                      <motion.div 
-                        layoutId="mobileActive" 
-                        className="absolute -bottom-2 w-1 h-1 bg-primary rounded-full shadow-[0_0_10px_#22c55e]" 
-                      />
-                    )}
-                  </Link>
-                )
-              })}
-              <Link 
-                href="/profile"
-                className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-2xl transition-all ${
-                  pathname === '/profile' ? 'text-primary' : 'text-muted-foreground hover:text-white'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full overflow-hidden border ${pathname === '/profile' ? 'border-primary' : 'border-white/10'}`}>
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rishi" alt="Avatar" className="w-full h-full object-cover" />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest">Profile</span>
-              </Link>
-            </div>
-          </nav>
+                    {showMore 
+                      ? <X className="h-[22px] w-[22px] text-white/60" />
+                      : <MoreHorizontal className="h-[22px] w-[22px] text-white/30" />
+                    }
+                  </motion.div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-white/20">More</span>
+                </button>
+              </div>
+            </nav>
+          </>
         )}
+
         {/* Global Modals */}
         <AddItemModal />
       </main>
     </div>
   )
 }
-

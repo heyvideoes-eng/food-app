@@ -87,10 +87,17 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     overflow-x: hidden;
-    cursor: none !important;
+    /* Only hide cursor on desktop — touch devices need default cursor */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
-  button, a, [role="button"] {
-    cursor: none !important;
+  @media (pointer: fine) {
+    body {
+      cursor: none !important;
+    }
+    button, a, [role="button"] {
+      cursor: none !important;
+    }
   }
   html {
     @apply scroll-smooth;
@@ -141,4 +148,38 @@
 
 .lenis.lenis-scrolling iframe {
   pointer-events: none;
+}
+
+/* Safe Area Utilities */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Mobile Bottom Nav */
+.mobile-nav {
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
+}
+
+/* Mobile Card Active State */
+@media (max-width: 1024px) {
+  .glass-card-mobile {
+    @apply active:scale-[0.97] transition-transform duration-150;
+  }
+}
+
+/* Smooth tap animation for mobile */
+.tap-scale {
+  @apply transition-transform duration-150 active:scale-[0.96];
+}
+
+/* No scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
