@@ -19,6 +19,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Check if auth is a valid Firebase Auth instance (not our build-time dummy)
+    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+      const mockUser = localStorage.getItem('fridgemind_user')
+      if (mockUser) {
+        try {
+          setUser(JSON.parse(mockUser))
+        } catch (e) {
+          console.error('Failed to parse local user:', e)
+        }
+      }
+      setLoading(false)
+      return
+    }
+
     // Check for Firebase Auth state
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -29,7 +43,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Fallback: Check local storage for mock demo user
         const mockUser = localStorage.getItem('fridgemind_user')
         if (mockUser) {
-          setUser(JSON.parse(mockUser))
+          try {
+            setUser(JSON.parse(mockUser))
+          } catch (e) {
+            console.error('Failed to parse local user:', e)
+          }
         } else {
           setUser(null)
           document.cookie = 'firebase-user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;'
