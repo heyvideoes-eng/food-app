@@ -37,7 +37,13 @@ export default function LoginPage() {
       if (data.success) {
         setServerOtp(data.debugOtp) // Store for simulation
         setStep('otp')
-        toast.success('Login code sent to your WhatsApp!')
+        if (data.simulated) {
+          toast.success('Entering Studio Simulator Mode', {
+            description: `Verification code: ${data.debugOtp} (displayed for demo purposes)`
+          })
+        } else {
+          toast.success('Login code sent to your WhatsApp!')
+        }
       } else {
         throw new Error(data.error)
       }
@@ -176,6 +182,18 @@ export default function LoginPage() {
                     >
                       {loading ? 'Verifying Neural Link...' : 'Synchronize Identity'}
                     </Button>
+                    
+                    {serverOtp && (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="p-4 rounded-xl bg-primary/5 border border-primary/10 text-center"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">Simulator Hint</p>
+                        <p className="text-xl font-heading text-white tracking-[0.4em]">{serverOtp}</p>
+                      </motion.div>
+                    )}
+
                     <button 
                       type="button"
                       onClick={() => setStep('phone')}
