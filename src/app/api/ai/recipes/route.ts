@@ -25,8 +25,8 @@ export async function POST(req: Request) {
       .select('id, name, quantity, unit, expiry_date, category')
       .order('expiry_date', { ascending: true })
 
-    const selectedItems = allFridgeItems?.filter(item => selectedIngredientIds.includes(item.id)) || []
-    const otherItems = allFridgeItems?.filter(item => !selectedIngredientIds.includes(item.id)) || []
+    const selectedItems = (allFridgeItems as any[])?.filter((item: any) => selectedIngredientIds.includes(item.id)) || []
+    const otherItems = (allFridgeItems as any[])?.filter((item: any) => !selectedIngredientIds.includes(item.id)) || []
 
     const systemPrompt = `You are FridgeMind's Intelligent Recipe Engine, a world-class culinary expert focused on food waste reduction and smart home cooking.
 Your mission is to generate realistic, delicious, and highly contextual recipes based on what the user has in their kitchen.
@@ -41,8 +41,8 @@ DIETARY PREFERENCES: ${preferences?.join(', ') || 'No specific restrictions'}.
 USER'S CREATIVE DIRECTION: ${creativePrompt || 'No specific direction provided. Surprise me with something great!'}
 
 AVAILABLE INVENTORY CONTEXT:
-- SELECTED ITEMS (Priority): ${selectedItems.map(i => `${i.name} (${i.quantity} ${i.unit}, Expiry: ${i.expiry_date})`).join(', ')}
-- OTHER AVAILABLE ITEMS: ${otherItems.map(i => i.name).join(', ')}
+- SELECTED ITEMS (Priority): ${selectedItems.map((i: any) => `${i.name} (${i.quantity} ${i.unit}, Expiry: ${i.expiry_date})`).join(', ')}
+- OTHER AVAILABLE ITEMS: ${otherItems.map((i: any) => i.name).join(', ')}
 
 WASTE REDUCTION INTELLIGENCE:
 - Leafy greens, berries, herbs, dairy, and cooked food are VERY PERISHABLE.

@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       messages: [
         {
           role: 'user',
-          content: `Perform a sustainability audit on these wasted food items: ${expiredItems.map(i => i.name).join(', ')}. 
+          content: `Perform a sustainability audit on these wasted food items: ${(expiredItems as any[]).map((i: any) => i.name).join(', ')}. 
           Calculate total financial loss (estimate in USD) and total CO2 impact (kg). 
           For each item, provide a penalty multiplier based on how environmentally expensive it is to produce (e.g., meat is 5, vegetables are 1).`
         }
@@ -45,8 +45,8 @@ export async function POST(req: Request) {
     })
 
     // 3. Log them as waste events with AI data
-    const wasteEvents = expiredItems.map(item => {
-      const itemAudit = audit.items_analysis.find(a => a.name === item.name) || { penalty_multiplier: 1, reason: 'Standard waste' }
+    const wasteEvents = (expiredItems as any[]).map((item: any) => {
+      const itemAudit = audit.items_analysis.find((a: any) => a.name === item.name) || { penalty_multiplier: 1, reason: 'Standard waste' }
       return {
         user_id: item.user_id,
         fridge_item_id: item.id,
@@ -63,8 +63,8 @@ export async function POST(req: Request) {
     if (wasteError) throw wasteError
 
     // 4. Update Rewards with AI Dynamic Penalties
-    for (const item of expiredItems) {
-      const itemAudit = audit.items_analysis.find(a => a.name === item.name) || { penalty_multiplier: 1 }
+    for (const item of (expiredItems as any[])) {
+      const itemAudit = audit.items_analysis.find((a: any) => a.name === item.name) || { penalty_multiplier: 1 }
       const penalty = 5 * itemAudit.penalty_multiplier
 
       const { data: rewards } = await supabase
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
     const { error: deleteError } = await supabase
       .from('fridge_items')
       .delete()
-      .in('id', expiredItems.map(i => i.id))
+      .in('id', (expiredItems as any[]).map((i: any) => i.id))
 
     if (deleteError) throw deleteError
 

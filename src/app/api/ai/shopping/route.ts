@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
   const { data: fridgeItems } = await supabase.from('fridge_items').select('name, category')
 
-  const itemsContext = fridgeItems?.map(i => i.name).join(', ') || 'None'
+  const itemsContext = (fridgeItems as any[])?.map((i: any) => i.name).join(', ') || 'None'
 
   const { object } = await generateObject({
     model: google('gemini-1.5-flash-latest'),

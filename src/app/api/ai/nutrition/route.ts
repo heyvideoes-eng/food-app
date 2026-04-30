@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       .select('name, quantity, unit, expiry_date')
       .order('expiry_date', { ascending: true })
 
-    const inventoryContext = fridgeItems?.map(i => `- ${i.name} (${i.quantity} ${i.unit}), Expiry: ${i.expiry_date}`).join('\n') || 'No items in fridge.'
+    const inventoryContext = (fridgeItems as any[])?.map((i: any) => `- ${i.name} (${i.quantity} ${i.unit}), Expiry: ${i.expiry_date}`).join('\n') || 'No items in fridge.'
 
     const systemMessage = `You are FridgeMind's AI Nutritionist and Global Food Assistant. 
 You provide healthy eating advice, analyze meal descriptions, and give calorie/macro estimates.

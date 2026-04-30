@@ -114,7 +114,7 @@ export default function ShoppingListPage() {
           user_id: user?.id
         }))
         localStorage.setItem('fridgemind_local_items', JSON.stringify([...localFridge, ...newFridgeData]))
-        localStorage.setItem('fridgemind_local_shopping', JSON.stringify(items.filter(i => i.status !== 'bought')))
+        localStorage.setItem('fridgemind_local_shopping', JSON.stringify((items as any[]).filter((i: any) => i.status !== 'bought')))
         return
       }
 
