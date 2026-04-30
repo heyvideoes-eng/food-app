@@ -6,7 +6,6 @@ import { AppShell } from '@/components/layout/app-shell'
 import { Toaster } from '@/components/ui/sonner'
 import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider'
 import BackgroundCanvas from '@/components/canvas/BackgroundCanvas'
-import { GlobalAssistant } from '@/components/chat/global-assistant'
 import CustomCursor from '@/components/ui/CustomCursor'
 import { NotificationProvider } from '@/components/providers/NotificationProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
@@ -35,7 +34,6 @@ export default function RootLayout({
                 <BackgroundCanvas />
                 <AppShell>
                   {children}
-                  <GlobalAssistant />
                 </AppShell>
                 <Toaster />
               </QueryProvider>

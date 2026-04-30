@@ -28,17 +28,44 @@ export default function ShoppingListPage() {
   const [newItemName, setNewItemName] = useState('')
   const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
 
-  const { data: items = [], isLoading } = useQuery({
+  // Local Storage Fallback Logic
+  const getLocalItems = () => {
+    if (typeof window === 'undefined') return []
+    const saved = localStorage.getItem('fridgemind_local_shopping')
+    return saved ? JSON.parse(saved) : []
+  }
+
+  const saveLocalItem = (item: any) => {
+    const items = getLocalItems()
+    const newItem = { ...item, id: Math.random().toString(36).substr(2, 9), created_at: new Date().toISOString() }
+    localStorage.setItem('fridgemind_local_shopping', JSON.stringify([...items, newItem]))
+    return newItem
+  }
+
+  const { data: dbItems = [], isLoading: isQueryLoading } = useQuery({
     queryKey: ['shopping_list_items'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('shopping_list_items')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data || []
+      try {
+        const { data, error } = await supabase
+          .from('shopping_list_items')
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (error) throw error
+        return data || []
+      } catch (err) {
+        console.warn('Shopping list fetch failed, using local fallback:', err)
+        return getLocalItems()
+      }
     }
   })
+
+  const mockItems = [
+    { id: 'm1', name: 'Almond Milk', category: 'Dairy', status: 'pending', created_at: new Date().toISOString() },
+    { id: 'm2', name: 'Avocados', category: 'Produce', status: 'pending', created_at: new Date().toISOString() },
+  ]
+
+  const items = (dbItems.length > 0) ? dbItems : (isDemoMode ? [...mockItems, ...getLocalItems()] : getLocalItems())
+  const isLoading = isQueryLoading && !isDemoMode && items.length === 0
 
   // We'll keep suggested as local mock or fetch from a special AI endpoint later
   const [suggested, setSuggested] = useState([
@@ -49,10 +76,18 @@ export default function ShoppingListPage() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, checked }: { id: string, checked: boolean }) => {
-      if (isDemoMode) return
+      const newStatus = checked ? 'bought' : 'pending'
+      
+      if (isDemoMode) {
+        const local = getLocalItems()
+        const updated = local.map((i: any) => i.id === id ? { ...i, status: newStatus } : i)
+        localStorage.setItem('fridgemind_local_shopping', JSON.stringify(updated))
+        return
+      }
+
       const { error } = await supabase
         .from('shopping_list_items')
-        .update({ status: checked ? 'bought' : 'pending' })
+        .update({ status: newStatus })
         .eq('id', id)
       if (error) throw error
     },
@@ -61,21 +96,23 @@ export default function ShoppingListPage() {
       toast.success('Status updated')
     },
     onError: () => {
-      if (isDemoMode) {
-        toast.success('Demo: Status toggled')
-        return
-      }
       toast.error('Failed to update status')
     }
   })
 
   const addItemMutation = useMutation({
     mutationFn: async (name: string) => {
-      if (isDemoMode) return
+      const newItem = { name, status: 'pending', category: 'Other' }
+      
+      if (isDemoMode) {
+        saveLocalItem(newItem)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       const { error } = await supabase
         .from('shopping_list_items')
-        .insert([{ name, status: 'pending', category: 'Other', user_id: user?.id }])
+        .insert([{ ...newItem, user_id: user?.id }])
       if (error) throw error
     },
     onSuccess: () => {
@@ -84,11 +121,6 @@ export default function ShoppingListPage() {
       toast.success('Item added to list')
     },
     onError: () => {
-      if (isDemoMode) {
-        setNewItemName('')
-        toast.success('Demo: Item added to list')
-        return
-      }
       toast.error('Failed to add item')
     }
   })
@@ -151,7 +183,12 @@ export default function ShoppingListPage() {
 
   const deleteItemMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (isDemoMode) return
+      if (isDemoMode) {
+        const local = getLocalItems()
+        const updated = local.filter((i: any) => i.id !== id)
+        localStorage.setItem('fridgemind_local_shopping', JSON.stringify(updated))
+        return
+      }
       const { error } = await supabase.from('shopping_list_items').delete().eq('id', id)
       if (error) throw error
     },

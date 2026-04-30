@@ -25,8 +25,12 @@ export default function NutritionPage() {
   const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
   
   const { messages, input, handleInputChange, handleSubmit, setMessages, isLoading } = useChat({
-    url: '/api/ai/nutrition',
-  } as any) as any
+    url: '/api/recipe/nutrition',
+    onError: (err) => {
+      console.error('Chat Error:', err)
+      toast.error('Could not reach the Recipe Engine. Please check your connection.')
+    }
+  })
   
   const [sessions] = useState([
     { id: '1', title: 'High-Protein Breakfast', date: 'Yesterday' },
@@ -82,7 +86,7 @@ export default function NutritionPage() {
              <span className="text-[11px] font-bold text-primary uppercase tracking-widest">Pro Guardian</span>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Your AI nutritionist has analyzed 24 meals this week. You're on track!
+            Your smart nutritionist has analyzed 24 meals this week. You're on track!
           </p>
         </Card>
       </div>

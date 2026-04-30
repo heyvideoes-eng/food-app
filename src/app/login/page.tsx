@@ -60,7 +60,7 @@ export default function LoginPage() {
 
     // Simulation of verification and multi-user profile creation
     setTimeout(() => {
-      if (otp === serverOtp || otp === '123456') {
+      if (otp.trim() === (serverOtp || '').trim() || otp.trim() === '123456') {
         const mockUser = {
           id: `wa_${phone.replace('+', '')}`,
           phone: phone,

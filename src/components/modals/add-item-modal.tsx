@@ -76,7 +76,7 @@ export function AddItemModal() {
     if (!file) return
 
     setIsScanning(true)
-    const loader = toast.loading('Gemini is analyzing your receipt...', { className: 'glass-dark border-primary/20' })
+    const loader = toast.loading('Studio is analyzing your receipt...', { className: 'glass-dark border-primary/20' })
 
     try {
       const reader = new FileReader()
@@ -126,7 +126,7 @@ export function AddItemModal() {
                   {[
                     { id: 'quick', name: 'Quick Add', sub: 'Manual entry', icon: Plus, color: 'text-primary' },
                     { id: 'barcode', name: 'Barcode', sub: 'Scan package', icon: Barcode, color: 'text-cyan-400' },
-                    { id: 'receipt', name: 'Receipt', sub: 'AI extraction', icon: Upload, color: 'text-violet-400' },
+                    { id: 'receipt', name: 'Receipt', sub: 'Smart extraction', icon: Upload, color: 'text-violet-400' },
                     { id: 'photo', name: 'Photo', sub: 'Visual scan', icon: Camera, color: 'text-amber-400' },
                   ].map((method) => (
                     <button

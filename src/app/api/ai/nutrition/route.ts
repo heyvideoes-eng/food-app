@@ -40,14 +40,24 @@ GOALS:
 If asked about recipes, give high-level suggestions. If they want detailed recipes, point them to the 'Recipes' studio.`
 
     const result = await streamText({
-      model: google('gemini-1.5-flash-latest'),
+      model: google('gemini-1.5-flash'),
       system: systemMessage,
-      messages,
+      messages: messages.map((m: any) => ({
+        role: m.role,
+        content: m.content
+      })),
     })
 
     return result.toTextStreamResponse()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Nutrition Route Error:', error)
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 })
+    return new Response(JSON.stringify({ 
+      error: 'Internal Server Error', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }

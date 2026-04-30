@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
   try {
-    const { preferences, input: creativePrompt, selectedIngredientIds } = await req.json()
+    const { preferences, input: creativePrompt, selectedIngredientIds, selectedItems: manualItems } = await req.json()
     
     const cookieStore = await cookies()
     const isDemoMode = cookieStore.get('demo-mode')?.value === 'true' || !process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -19,14 +19,19 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 })
     }
 
-    // Fetch all fridge items to provide full context and identify what's missing
-    const { data: allFridgeItems } = await supabase
-      .from('fridge_items')
-      .select('id, name, quantity, unit, expiry_date, category')
-      .order('expiry_date', { ascending: true })
+    // Fetch all fridge items if not provided manually
+    let selectedItems = manualItems
+    let otherItems = []
 
-    const selectedItems = (allFridgeItems as any[])?.filter((item: any) => selectedIngredientIds.includes(item.id)) || []
-    const otherItems = (allFridgeItems as any[])?.filter((item: any) => !selectedIngredientIds.includes(item.id)) || []
+    if (!selectedItems || selectedItems.length === 0) {
+      const { data: allFridgeItems } = await supabase
+        .from('fridge_items')
+        .select('id, name, quantity, unit, expiry_date, category')
+        .order('expiry_date', { ascending: true })
+
+      selectedItems = (allFridgeItems as any[])?.filter((item: any) => selectedIngredientIds.includes(item.id)) || []
+      otherItems = (allFridgeItems as any[])?.filter((item: any) => !selectedIngredientIds.includes(item.id)) || []
+    }
 
     const systemPrompt = `You are FridgeMind's Intelligent Recipe Engine, a world-class culinary expert focused on food waste reduction and smart home cooking.
 Your mission is to generate realistic, delicious, and highly contextual recipes based on what the user has in their kitchen.
@@ -54,7 +59,7 @@ You must return a structured JSON response containing 3-5 ranked recipe recommen
 Each recipe must include a wasteReductionScore (0-100) based on how many perishable/expiring items it uses.`
 
     const { object } = await generateObject({
-      model: google('gemini-1.5-pro-latest'),
+      model: google('gemini-1.5-pro'),
       schema: z.object({
         summary: z.string().describe("A short summary of the recommendations and how they help reduce waste."),
         recipes: z.array(z.object({
@@ -93,9 +98,12 @@ Each recipe must include a wasteReductionScore (0-100) based on how many perisha
     })
 
     return NextResponse.json(object)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Recipe Generation Error:', error)
-    return new Response(JSON.stringify({ error: 'Failed to generate recipes' }), { 
+    return new Response(JSON.stringify({ 
+      error: 'Failed to generate recipes',
+      details: error.message
+    }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     })

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
     // Gemini Vision call with the receipt image
     const { object } = await generateObject({
-      model: google('gemini-1.5-flash-latest'),
+      model: google('gemini-1.5-flash'),
       schema: z.object({
         items: z.array(z.object({
           name: z.string(),
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
           role: 'user',
           content: [
             { type: 'text', text: 'Extract grocery items from this receipt image. For each item, provide the name, quantity, unit (e.g., kg, units, liters), and category. Also estimate the shelf life in days from today based on its category (e.g., fresh vegetables 5 days, dairy 7-10 days, frozen 90 days, pantry 365 days).' },
-            { type: 'image', image: imageUrl }
+            { type: 'image', image: new URL(imageUrl) }
           ]
         }
       ]

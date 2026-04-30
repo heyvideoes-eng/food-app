@@ -14,7 +14,7 @@ export default function Home() {
 
   const features = [
     { name: 'Fridge Tracker', icon: Refrigerator, desc: 'Monitor your inventory and expiry dates.', href: '/fridge', color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
-    { name: 'AI Recipes', icon: ChefHat, desc: 'Generate recipes from what you have.', href: '/recipes', color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { name: 'Recipes', icon: ChefHat, desc: 'Discover recipes from what you have.', href: '/recipes', color: 'text-amber-400', bg: 'bg-amber-400/10' },
     { name: 'Smart Shopping', icon: ShoppingBag, desc: 'Sync your needs before you shop.', href: '/shopping', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
     { name: 'Waste Analytics', icon: Trash2, desc: 'Track and reduce your food waste.', href: '/waste', color: 'text-rose-400', bg: 'bg-rose-400/10' },
   ]
@@ -68,7 +68,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-xl md:text-2xl text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed mb-12"
           >
-            Your intelligent kitchen companion. Track inventory, reduce waste, and discover AI-powered recipes.
+            Your intelligent kitchen companion. Track inventory, reduce waste, and discover curated recipes.
           </motion.p>
           
           <motion.div

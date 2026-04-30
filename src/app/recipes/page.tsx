@@ -58,17 +58,44 @@ export default function RecipesPage() {
   useEffect(() => {
     async function fetchSelectedItems() {
       if (selectedIngredientIds.length > 0) {
-        const { data } = await supabase
-          .from('fridge_items')
-          .select('*')
-          .in('id', selectedIngredientIds)
-        setSelectedItems(data || [])
+        try {
+          const { data, error } = await supabase
+            .from('fridge_items')
+            .select('*')
+            .in('id', selectedIngredientIds)
+          
+          if (error) throw error
+          if (data && data.length > 0) {
+            setSelectedItems(data)
+          } else if (isDemoMode) {
+            // Fallback to local storage
+            const local = JSON.parse(localStorage.getItem('fridgemind_local_items') || '[]')
+            const mock = [
+              { id: '1', name: 'Whole Milk', category: 'Dairy', quantity: 1, unit: 'L', expiry_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString() },
+              { id: '2', name: 'Fresh Spinach', category: 'Vegetables', quantity: 250, unit: 'g', expiry_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
+              { id: '3', name: 'Greek Yogurt', category: 'Dairy', quantity: 500, unit: 'g', expiry_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+            ]
+            const all = [...mock, ...local]
+            setSelectedItems(all.filter(i => selectedIngredientIds.includes(i.id)))
+          }
+        } catch (err) {
+          if (isDemoMode) {
+            const local = JSON.parse(localStorage.getItem('fridgemind_local_items') || '[]')
+            const mock = [
+              { id: '1', name: 'Whole Milk', category: 'Dairy', quantity: 1, unit: 'L', expiry_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString() },
+              { id: '2', name: 'Fresh Spinach', category: 'Vegetables', quantity: 250, unit: 'g', expiry_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
+              { id: '3', name: 'Greek Yogurt', category: 'Dairy', quantity: 500, unit: 'g', expiry_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
+            ]
+            const all = [...mock, ...local]
+            setSelectedItems(all.filter(i => selectedIngredientIds.includes(i.id)))
+          }
+        }
       } else {
         setSelectedItems([])
       }
     }
     fetchSelectedItems()
-  }, [selectedIngredientIds])
+  }, [selectedIngredientIds, isDemoMode])
 
   const togglePreference = (pref: string) => {
     setPreferences(prev => 
@@ -93,6 +120,7 @@ export default function RecipesPage() {
           preferences,
           input: creativeInput,
           selectedIngredientIds,
+          selectedItems, // Pass full item data for context
           userId: user?.id
         })
       })
@@ -105,7 +133,7 @@ export default function RecipesPage() {
       toast.success(`Found ${data.recipes.length} perfect matches!`)
     } catch (error) {
       console.error(error)
-      toast.error('Could not reach the AI Engine. Please check your connection.')
+      toast.error('Could not reach the Recipe Engine. Please check your connection.')
     } finally {
       setIsLoading(false)
     }
@@ -127,7 +155,7 @@ export default function RecipesPage() {
       ingredients_json: recipe.usesIngredients,
       steps_json: recipe.instructions,
       nutrition_json: { matchScore: recipe.matchScore, wasteReductionScore: recipe.wasteReductionScore },
-      source: 'ai',
+      source: 'smart',
       from_items_json: selectedItems
     })
 
@@ -148,7 +176,7 @@ export default function RecipesPage() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2 text-primary text-[10px] tracking-[0.3em] uppercase font-bold"
           >
-            <Sparkles className="h-4 w-4" /> AI Recipe Engine
+            <Sparkles className="h-4 w-4" /> Recipe Engine
           </motion.div>
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}

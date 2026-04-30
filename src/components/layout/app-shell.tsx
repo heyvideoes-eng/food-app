@@ -31,10 +31,10 @@ import { useStore } from '@/lib/store'
 const navItems = [
   { name: 'Home', href: '/', icon: Home, status: '' },
   { name: 'Fridge', href: '/fridge', icon: Refrigerator, status: '3 expiring' },
+  { name: 'Nutrition', href: '/nutrition', icon: MessageCircleHeart, status: '' },
   { name: 'Recipes', href: '/recipes', icon: ChefHat, status: '' },
   { name: 'Waste', href: '/waste', icon: Trash2, status: '' },
   { name: 'Shop', href: '/shopping', icon: ShoppingCart, status: '' },
-  { name: 'Chat', href: '/nutrition', icon: MessageCircleHeart, status: '' },
   { name: 'Rewards', href: '/rewards', icon: Award, status: '+15 pts today' },
 ]
 
@@ -213,10 +213,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="flex items-center gap-3">
                 <NotificationCenter />
-                <div className="h-8 w-[1px] bg-white/5 mx-1" />
-                <Avatar className="h-11 w-11 rounded-2xl border border-white/10 p-[2px] transition-transform hover:scale-105 cursor-pointer">
-                  <AvatarFallback className="rounded-[10px] bg-white/5 text-white text-xs font-bold">HV</AvatarFallback>
-                </Avatar>
               </div>
             </div>
           </header>
@@ -233,9 +229,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-4">
               <NotificationCenter />
-              <Avatar className="h-8 w-8 rounded-lg border border-white/10">
-                <AvatarFallback className="bg-white/5 text-[10px] font-bold text-white">HV</AvatarFallback>
-              </Avatar>
             </div>
           </header>
         )}
