@@ -26,18 +26,105 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ProfilePage() {
-  const { whatsappNumber, setWhatsappNumber } = useStore()
-  const [isEditing, setIsEditing] = useState(false)
-  const [userName, setUserName] = useState('Rishi Studio')
-  const [userBio, setUserBio] = useState('Saving the planet, one meal at a time. 🌍 | AI Food Guardian')
-  const [userEmail, setUserEmail] = useState('rishi@fridgemind.ai')
-  
   const supabase = createClient()
+  const queryClient = useQueryClient()
+  const { whatsappNumber, setWhatsappNumber } = useStore()
+  
+  const [isEditing, setIsEditing] = useState(false)
+  const [formName, setFormName] = useState('')
+  const [formBio, setFormBio] = useState('')
+
+  // 1. Fetch Auth & Profile
+  const { data: userProfile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['user_profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return null
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      const displayName = profile?.full_name || user.user_metadata?.display_name || 'Guardian'
+      const email = user.email || ''
+      
+      // Initialize form if not yet set
+      if (!formName) setFormName(displayName)
+
+      return {
+        id: user.id,
+        email,
+        displayName,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`,
+        bio: profile?.bio || 'Saving the planet, one meal at a time. 🌍'
+      }
+    }
+  })
+
+  // 2. Fetch Real Stats
+  const { data: realStats = { saved: 0, streak: 0, points: 0 } } = useQuery({
+    queryKey: ['user_stats'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return { saved: 0, streak: 0, points: 0 }
+
+      // Total saved items from waste_events
+      const { count: savedCount } = await supabase
+        .from('waste_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('outcome', 'saved')
+
+      // Total items added to fridge ever
+      const { count: totalItems } = await supabase
+        .from('fridge_items')
+        .select('*', { count: 'exact', head: true })
+
+      return {
+        saved: savedCount || 0,
+        streak: 1, // Logic for streak would need a dedicated table or complex query
+        points: (savedCount || 0) * 50 + (totalItems || 0) * 10
+      }
+    },
+    enabled: !!userProfile
+  })
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async ({ name, bio }: { name: string, bio: string }) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: name,
+          bio: bio,
+          updated_at: new Date().toISOString()
+        })
+      
+      if (error) throw error
+
+      // Also update auth metadata for consistency
+      await supabase.auth.updateUser({
+        data: { display_name: name }
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user_profile'] })
+      setIsEditing(false)
+      toast.success('Identity Updated Successfully')
+    },
+    onError: () => toast.error('Failed to update profile')
+  })
+
+  if (isProfileLoading) return <div className="py-40 text-center text-white/20 animate-pulse uppercase tracking-[0.4em] font-black">Syncing Neural Identity...</div>
 
   const stats = [
-    { label: 'Saved Items', value: 142, icon: Leaf },
-    { label: 'Streak Days', value: 12, icon: Zap },
-    { label: 'Eco Points', value: '4.8k', icon: Star },
+    { label: 'Saved Items', value: realStats.saved, icon: Leaf },
+    { label: 'Active streak', value: `${realStats.streak}d`, icon: Zap },
+    { label: 'Eco Points', value: realStats.points.toLocaleString(), icon: Star },
   ]
 
   const badges = [
@@ -56,29 +143,32 @@ export default function ProfilePage() {
           animate={{ opacity: 1, scale: 1 }}
           className="relative group"
         >
-          <div className="w-32 h-32 md:w-44 md:h-44 rounded-full p-1.5 bg-gradient-to-tr from-amber-500 via-primary to-violet-500">
+          <div className="w-32 h-32 md:w-44 md:h-44 rounded-full p-1.5 bg-gradient-to-tr from-amber-500 via-primary to-violet-500 shadow-[0_0_50px_rgba(var(--primary-rgb),0.3)]">
             <div className="w-full h-full rounded-full bg-[#0a0a0b] p-1">
               <img 
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} 
+                src={userProfile?.avatar} 
                 alt="Avatar" 
                 className="w-full h-full rounded-full object-cover bg-white/5"
               />
             </div>
           </div>
-          <button className="absolute bottom-2 right-2 p-2 bg-primary text-white rounded-full border-4 border-[#0a0a0b] hover:scale-110 transition-all">
-            <Plus className="h-4 w-4" />
-          </button>
         </motion.div>
 
         <div className="flex-1 space-y-6 text-center md:text-left">
           <div className="flex flex-col md:flex-row md:items-center gap-6">
-            <h1 className="text-3xl font-heading text-white">{userName}</h1>
+            <h1 className="text-3xl md:text-5xl font-heading text-white tracking-tight">{userProfile?.displayName}</h1>
             <div className="flex gap-2 justify-center">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="rounded-xl glass border-white/10 h-9 font-bold px-6"
-                onClick={() => setIsEditing(!isEditing)}
+                className="rounded-xl glass border-white/10 h-9 font-bold px-6 uppercase text-[10px] tracking-widest"
+                onClick={() => {
+                   setIsEditing(!isEditing)
+                   if (!isEditing) {
+                     setFormName(userProfile?.displayName || '')
+                     setFormBio(userProfile?.bio || '')
+                   }
+                }}
               >
                 {isEditing ? 'Cancel' : 'Edit Profile'}
               </Button>
@@ -92,24 +182,24 @@ export default function ProfilePage() {
             {stats.map((s, i) => (
               <div key={i} className="flex flex-col items-center md:items-start">
                 <span className="text-xl font-black text-white">{s.value}</span>
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{s.label}</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold opacity-40">{s.label}</span>
               </div>
             ))}
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-bold text-white">Neural Guardian</p>
+            <p className="text-sm font-bold text-primary uppercase tracking-widest text-[10px]">Neural Guardian</p>
             <p className="text-sm text-muted-foreground font-light max-w-md leading-relaxed">
-              {userBio}
+              {userProfile?.bio}
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" /> Earth • 2026
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/5">
+              <MapPin className="h-3 w-3" /> Earth • 2026
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-primary font-bold">
-              <LinkIcon className="h-3.5 w-3.5" /> fridgemind.ai/rishi
+            <div className="flex items-center gap-1.5 text-xs text-primary font-bold bg-primary/5 px-3 py-1 rounded-full border border-primary/10">
+              <LinkIcon className="h-3 w-3" /> {userProfile?.email}
             </div>
           </div>
         </div>
@@ -122,15 +212,15 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           className="px-10 mb-10"
         >
-          <Card className="glass border-white/10 rounded-[2rem] overflow-hidden">
-            <CardContent className="p-8 space-y-8">
+          <Card className="glass border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <CardContent className="p-10 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-primary px-1">Display Identity</label>
                   <Input 
-                    value={userName} 
-                    onChange={(e) => setUserName(e.target.value)}
-                    className="h-14 rounded-2xl bg-white/5 border-white/10 glass text-white" 
+                    value={formName} 
+                    onChange={(e) => setFormName(e.target.value)}
+                    className="h-14 rounded-2xl bg-white/5 border-white/10 glass text-white focus:ring-primary/20" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -148,20 +238,18 @@ export default function ProfilePage() {
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-primary px-1">Mission Bio</label>
                   <Input 
-                    value={userBio} 
-                    onChange={(e) => setUserBio(e.target.value)}
+                    value={formBio} 
+                    onChange={(e) => setFormBio(e.target.value)}
                     className="h-14 rounded-2xl bg-white/5 border-white/10 glass text-white" 
                   />
                 </div>
               </div>
               <Button 
-                className="w-full h-14 rounded-2xl bg-white text-black font-bold tracking-widest uppercase text-xs hover:bg-white/90"
-                onClick={() => {
-                  setIsEditing(false)
-                  toast.success('Identity Updated Successfully')
-                }}
+                className="w-full h-16 rounded-2xl bg-white text-black font-black tracking-[0.2em] uppercase text-xs hover:bg-white/90 shadow-xl transition-all active:scale-95"
+                disabled={updateProfileMutation.isPending}
+                onClick={() => updateProfileMutation.mutate({ name: formName, bio: formBio })}
               >
-                Save Identity Changes
+                {updateProfileMutation.isPending ? 'Syncing...' : 'Save Identity Changes'}
               </Button>
             </CardContent>
           </Card>
@@ -182,37 +270,41 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-1 md:gap-4 p-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-6">
           {badges.map((badge, i) => (
             <motion.div 
               key={i}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="aspect-square glass border-white/5 rounded-2xl md:rounded-[2rem] flex flex-col items-center justify-center p-6 text-center space-y-4 hover:border-white/20 transition-all cursor-pointer group overflow-hidden relative"
+              className="aspect-square glass border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center p-6 text-center space-y-4 hover:border-white/20 transition-all cursor-pointer group overflow-hidden relative shadow-lg"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className={`p-5 rounded-full bg-white/5 ${badge.color} group-hover:scale-110 transition-transform duration-500`}>
-                <badge.icon className="h-8 w-8 md:h-12 md:w-12" />
+              <div className={`p-6 rounded-full bg-white/5 ${badge.color} group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500`}>
+                <badge.icon className="h-10 w-10 md:h-14 md:w-14" />
               </div>
               <div className="space-y-1 relative z-10">
-                <p className="text-[10px] md:text-xs font-bold text-white uppercase tracking-widest leading-tight">{badge.name}</p>
-                <p className="text-[8px] md:text-[10px] text-muted-foreground font-bold uppercase tracking-tighter opacity-40 group-hover:opacity-100 transition-opacity">Level 4 Master</p>
+                <p className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest leading-tight">{badge.name}</p>
+                <p className="text-[8px] md:text-[10px] text-muted-foreground font-black uppercase tracking-tighter opacity-20 group-hover:opacity-100 transition-opacity">Level 4 Master</p>
               </div>
             </motion.div>
           ))}
           
-          <div className="aspect-square border border-dashed border-white/5 rounded-2xl md:rounded-[2rem] flex flex-col items-center justify-center p-6 text-center space-y-4 opacity-30">
-            <div className="p-5 rounded-full bg-white/5 text-muted-foreground">
-              <Zap className="h-8 w-8 md:h-12 md:w-12" />
+          <div className="aspect-square border border-dashed border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center p-6 text-center space-y-4 opacity-10">
+            <div className="p-6 rounded-full bg-white/5 text-muted-foreground">
+              <Zap className="h-10 w-10 md:h-14 md:w-14" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest">Locked</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest">Locked Achievement</p>
           </div>
         </div>
       </div>
     </div>
   )
 }
+
+// Ensure you have these imports at the top
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 
 function Plus(props: any) {
   return (

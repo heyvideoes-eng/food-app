@@ -126,23 +126,27 @@ export default function RecipesPage() {
         })
       })
 
-      if (!response.ok) throw new Error('Failed to generate')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || errorData.error || 'Failed to generate')
+      }
 
       const data = await response.json()
       setRecipes(data.recipes)
       setSummary(data.summary)
       toast.success(`Found ${data.recipes.length} perfect matches!`)
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      toast.error('Could not reach the Recipe Engine. Please check your connection.')
+      toast.error('Recipe Engine Error', {
+        description: error.message || 'Please check your connection and API key.'
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
   const saveRecipe = async (recipe: Recipe) => {
-    const savedUser = localStorage.getItem('fridgemind_user')
-    const user = savedUser ? JSON.parse(savedUser) : null
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       toast.error('Please log in to save recipes.')
@@ -164,6 +168,39 @@ export default function RecipesPage() {
       toast.error('Failed to save recipe.')
     } else {
       toast.success('Saved to your digital cookbook!')
+    }
+  }
+
+  const fillMissingIngredients = async (recipe: Recipe) => {
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      toast.error('Please log in to update shopping list.')
+      return
+    }
+
+    if (recipe.missingIngredients.length === 0) {
+      toast.info('You have everything you need!')
+      return
+    }
+
+    const itemsToInsert = recipe.missingIngredients.map(ing => ({
+      user_id: user.id,
+      name: ing.name,
+      category: 'Produce', // Fallback category
+      status: 'pending',
+      auto_suggested: true
+    }))
+
+    const { error } = await supabase.from('shopping_list_items').insert(itemsToInsert)
+
+    if (error) {
+      toast.error('Failed to update shopping list.')
+    } else {
+      toast.success(`Added ${itemsToInsert.length} items to your shopping list!`, {
+        icon: <ShoppingCart className="h-4 w-4 text-primary" />
+      })
+      queryClient.invalidateQueries({ queryKey: ['shopping_list_items'] })
     }
   }
 
@@ -437,6 +474,7 @@ export default function RecipesPage() {
                         </Button>
                         <Button 
                           variant="outline"
+                          onClick={() => fillMissingIngredients(recipe)}
                           className="flex-1 h-18 rounded-3xl glass border-white/10 hover:bg-white/5 font-bold gap-3 tracking-widest uppercase text-xs transition-all"
                         >
                           <ShoppingCart className="h-5 w-5 text-white/40" /> Fill Missing

@@ -106,20 +106,26 @@ export default function NutritionPage() {
         {/* Nutrition Mini-Dashboard */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Calories', value: '1,450', unit: 'kcal', icon: Flame, color: 'text-amber-500' },
-            { label: 'Protein', value: '65', unit: 'g', icon: Activity, color: 'text-primary' },
-            { label: 'Carbs', value: '180', unit: 'g', icon: Apple, color: 'text-emerald-500' },
-            { label: 'Fats', value: '42', unit: 'g', icon: Utensils, color: 'text-cyan-400' },
+            { label: 'Calories', value: stats.calories, unit: 'kcal', icon: Flame, color: 'text-amber-500' },
+            { label: 'Protein', value: stats.protein, unit: 'g', icon: Activity, color: 'text-primary' },
+            { label: 'Carbs', value: stats.carbs, unit: 'g', icon: Apple, color: 'text-emerald-500' },
+            { label: 'Fats', value: stats.fats, unit: 'g', icon: Utensils, color: 'text-cyan-400' },
           ].map((stat, i) => (
             <Card key={i} className="bg-[#161821] border-white/5 shadow-sm p-4 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-1.5 opacity-10 group-hover:opacity-20 transition-opacity">
-                <stat.icon className="h-10 w-10" />
-              </div>
-              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-white">{stat.value}</span>
-                <span className="text-[10px] font-medium text-muted-foreground">{stat.unit}</span>
-              </div>
+              {isStatsLoading ? (
+                <div className="h-10 w-full bg-white/5 animate-pulse rounded-lg" />
+              ) : (
+                <>
+                  <div className="absolute top-0 right-0 p-1.5 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <stat.icon className="h-10 w-10" />
+                  </div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-black text-white">{stat.value.toLocaleString()}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground">{stat.unit}</span>
+                  </div>
+                </>
+              )}
             </Card>
           ))}
         </div>

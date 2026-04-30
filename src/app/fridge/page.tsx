@@ -41,47 +41,18 @@ export default function FridgePage() {
   const [isScanning, setIsScanning] = useState(false)
   const { selectedIngredientIds, toggleSelectedIngredient } = useStore()
   const queryClient = useQueryClient()
-  const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
-  
-  // Local Storage Fallback Logic
-  const getLocalStorageItems = () => {
-    if (typeof window === 'undefined') return []
-    const saved = localStorage.getItem('fridgemind_local_items')
-    return saved ? JSON.parse(saved) : []
-  }
-
-  const saveLocalStorageItem = (item: any) => {
-    const items = getLocalStorageItems()
-    const newItem = { ...item, id: Math.random().toString(36).substr(2, 9), created_at: new Date().toISOString() }
-    localStorage.setItem('fridgemind_local_items', JSON.stringify([...items, newItem]))
-    return newItem
-  }
-
-  const { data: realItems, isLoading: isQueryLoading } = useQuery({
+  const [isSupabaseReady, setIsSupabaseReady] = useState(false)
+  const { data: items, isLoading } = useQuery({
     queryKey: ['fridge_items'],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('fridge_items')
-          .select('*')
-          .order('expiry_date', { ascending: true })
-        if (error) throw error
-        return data || []
-      } catch (err) {
-        console.warn('Supabase fetch failed, using local storage fallback:', err)
-        return getLocalStorageItems()
-      }
+      const { data, error } = await supabase
+        .from('fridge_items')
+        .select('*')
+        .order('expiry_date', { ascending: true })
+      if (error) throw error
+      return data || []
     }
   })
-
-  const mockItems = [
-    { id: '1', name: 'Whole Milk', category: 'Dairy', quantity: 1, unit: 'L', expiry_date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(), storage_area: 'Fridge' },
-    { id: '2', name: 'Fresh Spinach', category: 'Vegetables', quantity: 250, unit: 'g', expiry_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), storage_area: 'Fridge' },
-    { id: '3', name: 'Greek Yogurt', category: 'Dairy', quantity: 500, unit: 'g', expiry_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), storage_area: 'Fridge' },
-  ]
-
-  const items = (realItems && realItems.length > 0) ? realItems : (isDemoMode ? mockItems : getLocalStorageItems())
-  const isLoading = isQueryLoading && !isDemoMode && items.length === 0
 
   const getUrgency = (date: string) => {
     if (!date) return 'safe'
@@ -114,27 +85,14 @@ export default function FridgePage() {
       const savedUser = localStorage.getItem('fridgemind_user')
       const user = savedUser ? JSON.parse(savedUser) : null
       
-      try {
-        if (isDemoMode) {
-          const localItems = getLocalStorageItems()
-          localStorage.setItem('fridgemind_local_items', JSON.stringify(localItems.filter((i: any) => i.id !== id)))
-          return { success: true, message: action === 'consume' ? 'Demo: +25 Points!' : 'Demo: Waste logged.' }
-        }
-
-        const response = await fetch('/api/fridge/action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ itemId: id, action, userId: user?.id })
-        })
-        
-        if (!response.ok) throw new Error('Action failed')
-        return response.json()
-      } catch (err) {
-        console.error('Action failed, falling back to basic delete:', err)
-        const localItems = getLocalStorageItems()
-        localStorage.setItem('fridgemind_local_items', JSON.stringify(localItems.filter((i: any) => i.id !== id)))
-        return { success: true, message: 'Updated locally.' }
-      }
+      const response = await fetch('/api/fridge/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: id, action, userId: user?.id })
+      })
+      
+      if (!response.ok) throw new Error('Action failed')
+      return response.json()
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['fridge_items'] })
@@ -147,18 +105,8 @@ export default function FridgePage() {
   // Basic delete mutation kept for simple UI deletions if needed
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      try {
-        if (isDemoMode) {
-          const localItems = getLocalStorageItems()
-          localStorage.setItem('fridgemind_local_items', JSON.stringify(localItems.filter((i: any) => i.id !== id)))
-          return
-        }
-        const { error } = await supabase.from('fridge_items').delete().eq('id', id)
-        if (error) throw error
-      } catch (err) {
-        const localItems = getLocalStorageItems()
-        localStorage.setItem('fridgemind_local_items', JSON.stringify(localItems.filter((i: any) => i.id !== id)))
-      }
+      const { error } = await supabase.from('fridge_items').delete().eq('id', id)
+      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fridge_items'] })
@@ -168,15 +116,10 @@ export default function FridgePage() {
 
   const addMutation = useMutation({
     mutationFn: async (newItemData: any) => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        const { data, error } = await supabase.from('fridge_items').insert([{ ...newItemData, user_id: user?.id }]).select()
-        if (error) throw error
-        return data
-      } catch (err) {
-        console.error('Supabase failed, saving to local storage:', err)
-        return saveLocalStorageItem(newItemData)
-      }
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase.from('fridge_items').insert([{ ...newItemData, user_id: user?.id }]).select()
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fridge_items'] })

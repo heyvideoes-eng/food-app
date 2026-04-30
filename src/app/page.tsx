@@ -1,19 +1,56 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Refrigerator, ChefHat, Trash2, ShoppingBag, Sparkles, Zap } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { 
+  ArrowRight, 
+  Refrigerator, 
+  ChefHat, 
+  Trash2, 
+  ShoppingBag, 
+  Sparkles, 
+  Zap,
+  Activity,
+  Layers,
+  Calendar,
+  CheckCircle2
+} from 'lucide-react'
 import Link from 'next/link'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useQuery } from '@tanstack/react-query'
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [activeFeature, setActiveFeature] = useState<number | null>(null)
+  const supabase = createClient()
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+  }, [])
+
+  const { data: fridgeCount = 0 } = useQuery({
+    queryKey: ['fridge_count'],
+    queryFn: async () => {
+      const { count } = await supabase.from('fridge_items').select('*', { count: 'exact', head: true })
+      return count || 0
+    },
+    enabled: !!user
+  })
+
+  const { data: shopCount = 0 } = useQuery({
+    queryKey: ['shop_count'],
+    queryFn: async () => {
+      const { count } = await supabase.from('shopping_list_items').select('*', { count: 'exact', head: true })
+      return count || 0
+    },
+    enabled: !!user
+  })
 
   const features = [
-    { name: 'Fridge Tracker',    icon: Refrigerator, desc: 'Monitor your inventory and expiry dates in real time.', href: '/fridge',   color: 'text-cyan-400',    bg: 'bg-cyan-400/10',    border: 'border-cyan-400/20',    glow: 'shadow-cyan-400/20' },
-    { name: 'Recipe Studio',     icon: ChefHat,       desc: 'AI-crafted recipes from exactly what you have.',       href: '/recipes',  color: 'text-amber-400',   bg: 'bg-amber-400/10',   border: 'border-amber-400/20',   glow: 'shadow-amber-400/20' },
-    { name: 'Smart Shopping',    icon: ShoppingBag,   desc: 'Sync your needs before you shop — never forget.',     href: '/shopping', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', glow: 'shadow-emerald-400/20' },
-    { name: 'Waste Analytics',   icon: Trash2,        desc: 'Track what you save and what you lose.',               href: '/waste',    color: 'text-rose-400',    bg: 'bg-rose-400/10',    border: 'border-rose-400/20',    glow: 'shadow-rose-400/20' },
+    { name: 'Fridge Tracker',    icon: Refrigerator, count: fridgeCount, desc: 'Monitor your inventory and expiry dates.', href: '/fridge',   color: 'text-cyan-400',    bg: 'bg-cyan-400/10',    border: 'border-cyan-400/20' },
+    { name: 'Recipe Studio',     icon: ChefHat,       count: null,        desc: 'AI-crafted recipes from your items.',       href: '/recipes',  color: 'text-amber-400',   bg: 'bg-amber-400/10',   border: 'border-amber-400/20' },
+    { name: 'Smart Shopping',    icon: ShoppingBag,   count: shopCount,   desc: 'Sync your needs before you shop.',     href: '/shopping', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
+    { name: 'Waste Analytics',   icon: Trash2,        count: null,        desc: 'Track what you save and lose.',               href: '/waste',    color: 'text-rose-400',    bg: 'bg-rose-400/10',    border: 'border-rose-400/20' },
   ]
 
   const stagger = {
@@ -29,179 +66,145 @@ export default function Home() {
     }
   }
 
+  if (user) {
+    return (
+      <main className="min-h-screen pt-28 pb-20 px-6 max-w-7xl mx-auto space-y-16">
+        {/* Dashboard Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-primary text-[10px] tracking-[0.3em] uppercase font-bold">
+              <Activity className="h-3.5 w-3.5" /> Intelligence Dashboard
+            </div>
+            <h1 className="text-5xl md:text-7xl font-heading text-white">System <span className="text-primary italic">Online</span></h1>
+            <p className="text-muted-foreground text-lg font-light">Welcome back, {user.user_metadata?.display_name || 'Guardian'}. Your kitchen is optimized.</p>
+          </div>
+          <div className="flex gap-3">
+             <div className="glass p-4 rounded-2xl flex items-center gap-4 border-white/5">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Eco Score</p>
+                  <p className="text-lg font-black text-white">850 <span className="text-[10px] text-primary">pts</span></p>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Quick Glance Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map((f) => (
+            <Link key={f.name} href={f.href} className="group">
+              <div className={`h-full p-8 rounded-[2.5rem] border ${f.border} ${f.bg} glass transition-all duration-500 hover:scale-[1.02] active:scale-95 flex flex-col justify-between min-h-[220px]`}>
+                <div className="flex justify-between items-start">
+                  <div className={`p-4 rounded-2xl ${f.bg} ${f.color} border ${f.border}`}>
+                    <f.icon className="h-6 w-6" />
+                  </div>
+                  {f.count !== null && (
+                    <div className="flex flex-col items-end">
+                      <span className="text-2xl font-black text-white">{f.count}</span>
+                      <span className="text-[9px] uppercase tracking-widest text-white/30 font-bold">Active Units</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-heading text-white group-hover:text-primary transition-colors">{f.name}</h3>
+                  <p className="text-xs text-white/40 leading-relaxed font-light">{f.desc}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Intelligence Feed */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-white/20">Operational Feed</h2>
+                <div className="flex-1 h-[1px] bg-white/5" />
+              </div>
+              <div className="space-y-4">
+                {[
+                  { icon: Layers, title: 'Inventory Sync', detail: '3 new items added via scan.', time: '2h ago' },
+                  { icon: ChefHat, title: 'New Recipe Match', detail: 'Spicy Pasta discovered for your spinach.', time: '5h ago' },
+                  { icon: CheckCircle2, title: 'Waste Saved', detail: 'Completed milk consumption 1 day early.', time: 'Yesterday' }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-6 p-6 rounded-3xl glass border-white/5 hover:bg-white/5 transition-all group">
+                    <div className="p-3 rounded-2xl bg-white/5 text-primary group-hover:bg-primary/20 transition-all">
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                       <h4 className="text-white font-bold text-sm tracking-tight">{item.title}</h4>
+                       <p className="text-xs text-muted-foreground font-light">{item.detail}</p>
+                    </div>
+                    <span className="text-[10px] font-bold text-white/10 uppercase tracking-widest">{item.time}</span>
+                  </div>
+                ))}
+              </div>
+           </div>
+
+           <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-white/20">System Stats</h2>
+                <div className="flex-1 h-[1px] bg-white/5" />
+              </div>
+              <div className="glass rounded-[2.5rem] p-8 border-white/5 space-y-8">
+                 <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                       <span>Pantry Capacity</span>
+                       <span>75%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                       <div className="h-full w-3/4 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]" />
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                       <span>Nutrient Efficiency</span>
+                       <span>92%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                       <div className="h-full w-[92%] bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+                    </div>
+                 </div>
+                 <Button className="w-full h-14 rounded-2xl bg-primary text-white font-black text-xs tracking-widest uppercase hover:bg-primary/80 transition-all">
+                    Generate Monthly Report
+                 </Button>
+              </div>
+           </div>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main ref={containerRef} className="relative w-full">
-
-      {/* ─── Hero ──────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-5 pt-28 pb-16 md:pt-32 md:pb-24 overflow-hidden text-center">
-        
-        {/* Ambient glow */}
+      {/* Hero section for non-logged-in users (same as before but cleaner) */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-5 pt-32 pb-24 overflow-hidden text-center">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.06] blur-[100px]" />
         </div>
 
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate="visible"
-          className="relative z-10 max-w-xl mx-auto space-y-6"
-        >
-          {/* Badge */}
+        <motion.div variants={stagger} initial="hidden" animate="visible" className="relative z-10 max-w-xl mx-auto space-y-8">
           <motion.div variants={fadeUp} className="flex justify-center">
             <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[11px] font-bold tracking-[0.25em] uppercase backdrop-blur-xl">
-              <Sparkles className="w-3.5 h-3.5" /> Welcome to the Future of Food
+              <Sparkles className="w-3.5 h-3.5" /> Future of Food Intelligence
             </span>
           </motion.div>
 
-          {/* Title */}
           <motion.h1 variants={fadeUp} className="text-[clamp(3rem,12vw,7rem)] font-heading leading-[0.88] text-white">
-            Meet<br /><span className="text-primary">FridgeMind</span>
+            Meet<br /><span className="text-primary italic">FridgeMind</span>
           </motion.h1>
 
-          {/* Subtitle */}
           <motion.p variants={fadeUp} className="text-[17px] md:text-xl text-white/50 font-light leading-relaxed max-w-md mx-auto">
-            Your intelligent kitchen companion. Track inventory, reduce waste, and discover AI-powered recipes.
+            The neural center for your kitchen. Track inventory, reduce waste, and discover AI recipes in a cinematic dashboard.
           </motion.p>
 
-          {/* CTA Buttons */}
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-            <Link
-              href="/login"
-              className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white text-black font-black text-sm tracking-widest uppercase hover:bg-white/90 transition-all active:scale-95 shadow-2xl shadow-white/10 tap-scale"
-            >
-              Get Started <ArrowRight className="w-4 h-4" />
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+            <Link href="/login" className="px-10 py-5 rounded-2xl bg-white text-black font-black text-xs tracking-[0.2em] uppercase hover:bg-white/90 transition-all shadow-2xl">
+              Initialize Account
             </Link>
-            <button
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl glass border-white/10 text-white/60 hover:text-white font-bold text-sm tracking-widest uppercase transition-all active:scale-95 tap-scale"
-            >
-              Explore Modules
-            </button>
           </motion.div>
-        </motion.div>
-
-        {/* Scroll cue */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        >
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-            className="w-[1px] h-10 bg-gradient-to-b from-white/30 to-transparent"
-          />
-        </motion.div>
-      </section>
-
-      {/* ─── Feature Grid (Mobile: cards, Desktop: alternating) ─── */}
-      <section id="features" className="px-5 py-16 md:py-32 max-w-5xl mx-auto">
-
-        {/* Mobile: tap-to-expand card grid */}
-        <div className="grid grid-cols-2 gap-4 md:hidden">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.name}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ delay: i * 0.07, duration: 0.6, ease: [0.21, 0.61, 0.35, 1] as const }}
-            >
-              <Link
-                href={f.href}
-                className={`flex flex-col p-5 rounded-[1.75rem] border ${f.border} ${f.bg} gap-4 active:scale-[0.96] transition-transform duration-150 shadow-xl ${f.glow} h-full`}
-              >
-                <div className={`w-12 h-12 rounded-2xl ${f.bg} ${f.color} flex items-center justify-center border ${f.border}`}>
-                  <f.icon className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className={`font-black text-base text-white leading-tight mb-1`}>{f.name}</h3>
-                  <p className="text-[11px] text-white/40 leading-relaxed font-light">{f.desc}</p>
-                </div>
-                <div className={`mt-auto flex items-center gap-1 ${f.color} text-[10px] font-black uppercase tracking-widest`}>
-                  Open <ArrowRight className="w-3 h-3" />
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Desktop: alternating layout */}
-        <div className="hidden md:block space-y-40">
-          {features.map((f, i) => (
-            <motion.section
-              key={f.name}
-              initial={{ opacity: 0, x: i % 2 === 0 ? -40 : 40 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: '-80px' }}
-              transition={{ duration: 1, ease: [0.21, 0.61, 0.35, 1] as const }}
-              className={`grid grid-cols-2 gap-16 items-center ${i % 2 !== 0 ? 'direction-rtl' : ''}`}
-            >
-              <div className={`flex flex-col ${i % 2 !== 0 ? 'order-2' : 'order-1'}`}>
-                <div className={`w-20 h-20 rounded-[2.5rem] flex items-center justify-center ${f.bg} ${f.color} mb-8 border ${f.border}`}>
-                  <f.icon className="w-10 h-10" />
-                </div>
-                <h2 className="text-6xl font-heading mb-4 text-white">{f.name}</h2>
-                <p className="text-xl text-white/50 font-light leading-relaxed mb-8">{f.desc}</p>
-                <Link href={f.href} className={`group inline-flex items-center gap-3 text-lg font-bold ${f.color}`}>
-                  <span className="relative">
-                    Launch Module
-                    <span className={`absolute bottom-0 left-0 w-full h-[1px] ${f.bg.replace('/10', '')} scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
-                  </span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-500" />
-                </Link>
-              </div>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.92, rotate: i % 2 === 0 ? 3 : -3 }}
-                whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
-                viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 1.2, ease: [0.21, 0.61, 0.35, 1] as const }}
-                className={`relative aspect-square rounded-[3rem] overflow-hidden border ${f.border} ${f.bg} ${i % 2 !== 0 ? 'order-1' : 'order-2'}`}
-              >
-                <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                  <f.icon className={`w-40 h-40 ${f.color} blur-2xl`} />
-                  <f.icon className={`w-40 h-40 ${f.color} absolute`} />
-                </div>
-                <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
-                  <div className="space-y-1">
-                    <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '100%' }}
-                        transition={{ duration: 1.5, delay: 0.4 }}
-                        className={`h-full ${f.bg.replace('/10', '')}`}
-                      />
-                    </div>
-                    <p className="text-[10px] tracking-widest uppercase opacity-30">Module Active</p>
-                  </div>
-                  <p className="text-4xl font-heading opacity-10">0{i + 1}</p>
-                </div>
-              </motion.div>
-            </motion.section>
-          ))}
-        </div>
-      </section>
-
-      {/* ─── Footer CTA ──────────────────────────────── */}
-      <section className="px-5 py-20 md:py-32 flex flex-col items-center text-center border-t border-white/5">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="space-y-6 max-w-lg"
-        >
-          <p className="text-[11px] tracking-[0.3em] uppercase text-white/30 font-bold">Ready to transform your kitchen?</p>
-          <h3 className="text-4xl md:text-6xl font-heading text-white">The evolution starts here.</h3>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-            <Link
-              href="/fridge"
-              className="px-8 py-4 rounded-2xl bg-white text-black font-black text-sm tracking-widest uppercase hover:bg-white/90 transition-all active:scale-95 tap-scale"
-            >
-              Open Fridge Tracker
-            </Link>
-          </div>
         </motion.div>
       </section>
     </main>

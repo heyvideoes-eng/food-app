@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { z } from 'zod'
+import { FRIDGE_MIND_SYSTEM_PROMPT } from '@/lib/ai-prompt'
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +13,12 @@ export async function POST(req: Request) {
 
     if (!user) {
       return new Response('Unauthorized', { status: 401 })
+    }
+
+    // Check for Google AI API Key
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      console.error('Fridge Action API: GOOGLE_GENERATIVE_AI_API_KEY is missing')
+      return new Response(JSON.stringify({ error: 'AI Configuration missing' }), { status: 500 })
     }
 
     // 1. Get the item details before acting
@@ -32,20 +39,23 @@ export async function POST(req: Request) {
 
     if (action === 'consume') {
       // AI SAVE AUDIT: Calculate positive impact
+      const taskContext = `
+TASK TYPE: waste_analysis
+Analyze the sustainability impact of consuming this item before it expires: ${item.name}. 
+Calculate CO2 saved (kg) and provide a reward multiplier (e.g., saving meat is 3x, vegetables 1x). 
+Write a very short, encouraging 1-sentence praise message.
+`
+
       const { object: audit } = await generateObject({
-        model: google('gemini-1.5-flash-latest'),
+        model: google('gemini-1.5-flash'),
         schema: z.object({
           carbon_saved_kg: z.number(),
           reward_multiplier: z.number(), // 1 to 3 based on item importance
           praise_message: z.string()
         }),
         messages: [
-          {
-            role: 'user',
-            content: `Analyze the sustainability impact of consuming this item before it expires: ${item.name}. 
-            Calculate CO2 saved (kg) and provide a reward multiplier (e.g., saving meat is 3x, vegetables 1x). 
-            Write a very short, encouraging 1-sentence praise message.`
-          }
+          { role: 'system', content: FRIDGE_MIND_SYSTEM_PROMPT },
+          { role: 'user', content: taskContext }
         ]
       })
 

@@ -56,7 +56,6 @@ import {
 export default function WasteTrackerPage() {
   const supabase = createClient()
   const queryClient = useQueryClient()
-  const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
   const [isLogModalOpen, setIsLogModalOpen] = useState(false)
   
   // Manual Log Form State
@@ -64,57 +63,23 @@ export default function WasteTrackerPage() {
   const [newOutcome, setNewOutcome] = useState<'saved' | 'wasted'>('wasted')
   const [newValue, setNewValue] = useState('')
 
-  // Local Storage Fallback Logic
-  const getLocalEvents = () => {
-    if (typeof window === 'undefined') return []
-    const saved = localStorage.getItem('fridgemind_local_waste_events')
-    return saved ? JSON.parse(saved) : []
-  }
-
-  const saveLocalEvent = (event: any) => {
-    const events = getLocalEvents()
-    const newEvent = { 
-      ...event, 
-      id: Math.random().toString(36).substr(2, 9), 
-      created_at: new Date().toISOString() 
-    }
-    localStorage.setItem('fridgemind_local_waste_events', JSON.stringify([newEvent, ...events]))
-    return newEvent
-  }
-
-  const { data: dbEvents = [], isLoading } = useQuery({
+  const { data: events = [], isLoading } = useQuery({
     queryKey: ['waste_events'],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('waste_events')
-          .select('*')
-          .order('created_at', { ascending: false })
-        if (error) throw error
-        return data || []
-      } catch (err) {
-        console.warn('Waste events fetch failed, using local fallback:', err)
-        return getLocalEvents()
-      }
+      const { data, error } = await supabase
+        .from('waste_events')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
     }
   })
 
-  const mockEvents = [
-    { id: 'm1', item_name: 'Greek Yogurt', outcome: 'saved', reason: 'Used in Recipe', estimated_value: 340, created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-    { id: 'm2', item_name: 'Fresh Spinach', outcome: 'wasted', reason: 'Spoiled', estimated_value: 85, created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'm3', item_name: 'Whole Milk', outcome: 'saved', reason: 'Consumed', estimated_value: 45, created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() },
-  ]
-
-  const events = (dbEvents.length > 0) ? dbEvents : (isDemoMode ? [...mockEvents, ...getLocalEvents()] : getLocalEvents())
-
   const logMutation = useMutation({
     mutationFn: async (event: any) => {
-      if (isDemoMode) {
-        saveLocalEvent(event)
-        return
-      }
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('waste_events').insert([{ ...event, user_id: user?.id }])
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) throw new Error('Not authenticated')
+      const { error } = await supabase.from('waste_events').insert([{ ...event, user_id: authUser.id }])
       if (error) throw error
     },
     onSuccess: () => {
@@ -160,14 +125,26 @@ export default function WasteTrackerPage() {
   }, [events])
 
   const chartData = useMemo(() => {
-    // Group by week for the last 4 weeks
-    return [
-      { name: 'Week 1', saved: 400, wasted: 120 },
-      { name: 'Week 2', saved: 600, wasted: 80 },
-      { name: 'Week 3', saved: 200, wasted: 240 },
-      { name: 'Week 4', saved: stats.savedValue || 450, wasted: stats.wastedValue || 50 },
-    ]
-  }, [stats])
+    const now = new Date()
+    const weeks = [3, 2, 1, 0].map(weeksAgo => {
+      const start = new Date(now)
+      start.setDate(now.getDate() - (weeksAgo + 1) * 7)
+      const end = new Date(now)
+      end.setDate(now.getDate() - weeksAgo * 7)
+      
+      const weekEvents = events.filter((e: any) => {
+        const d = new Date(e.created_at)
+        return d >= start && d < end
+      })
+
+      return {
+        name: weeksAgo === 0 ? 'This Week' : `${weeksAgo}w ago`,
+        saved: weekEvents.filter((e: any) => e.outcome === 'saved').reduce((acc: number, e: any) => acc + (Number(e.estimated_value) || 0), 0),
+        wasted: weekEvents.filter((e: any) => e.outcome === 'wasted').reduce((acc: number, e: any) => acc + (Number(e.estimated_value) || 0), 0)
+      }
+    })
+    return weeks
+  }, [events])
 
   return (
     <div className="space-y-12 max-w-7xl mx-auto pb-32">

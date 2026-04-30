@@ -26,46 +26,17 @@ export default function ShoppingListPage() {
   const supabase = createClient()
   const queryClient = useQueryClient()
   const [newItemName, setNewItemName] = useState('')
-  const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
-
-  // Local Storage Fallback Logic
-  const getLocalItems = () => {
-    if (typeof window === 'undefined') return []
-    const saved = localStorage.getItem('fridgemind_local_shopping')
-    return saved ? JSON.parse(saved) : []
-  }
-
-  const saveLocalItem = (item: any) => {
-    const items = getLocalItems()
-    const newItem = { ...item, id: Math.random().toString(36).substr(2, 9), created_at: new Date().toISOString() }
-    localStorage.setItem('fridgemind_local_shopping', JSON.stringify([...items, newItem]))
-    return newItem
-  }
-
-  const { data: dbItems = [], isLoading: isQueryLoading } = useQuery({
+  const { data: items = [], isLoading } = useQuery({
     queryKey: ['shopping_list_items'],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('shopping_list_items')
-          .select('*')
-          .order('created_at', { ascending: false })
-        if (error) throw error
-        return data || []
-      } catch (err) {
-        console.warn('Shopping list fetch failed, using local fallback:', err)
-        return getLocalItems()
-      }
+      const { data, error } = await supabase
+        .from('shopping_list_items')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
     }
   })
-
-  const mockItems = [
-    { id: 'm1', name: 'Almond Milk', category: 'Dairy', status: 'pending', created_at: new Date().toISOString() },
-    { id: 'm2', name: 'Avocados', category: 'Produce', status: 'pending', created_at: new Date().toISOString() },
-  ]
-
-  const items = (dbItems.length > 0) ? dbItems : (isDemoMode ? [...mockItems, ...getLocalItems()] : getLocalItems())
-  const isLoading = isQueryLoading && !isDemoMode && items.length === 0
 
   // We'll keep suggested as local mock or fetch from a special AI endpoint later
   const [suggested, setSuggested] = useState([
@@ -77,14 +48,6 @@ export default function ShoppingListPage() {
   const toggleMutation = useMutation({
     mutationFn: async ({ id, checked }: { id: string, checked: boolean }) => {
       const newStatus = checked ? 'bought' : 'pending'
-      
-      if (isDemoMode) {
-        const local = getLocalItems()
-        const updated = local.map((i: any) => i.id === id ? { ...i, status: newStatus } : i)
-        localStorage.setItem('fridgemind_local_shopping', JSON.stringify(updated))
-        return
-      }
-
       const { error } = await supabase
         .from('shopping_list_items')
         .update({ status: newStatus })
@@ -104,16 +67,22 @@ export default function ShoppingListPage() {
     mutationFn: async (name: string) => {
       const newItem = { name, status: 'pending', category: 'Other' }
       
-      if (isDemoMode) {
+      try {
+        if (!isDemoMode) {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const { error } = await supabase
+              .from('shopping_list_items')
+              .insert([{ ...newItem, user_id: user.id }])
+            if (!error) return
+          }
+        }
+        
         saveLocalItem(newItem)
-        return
+      } catch (err) {
+        console.warn('Add item failed, saving locally:', err)
+        saveLocalItem(newItem)
       }
-
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase
-        .from('shopping_list_items')
-        .insert([{ ...newItem, user_id: user?.id }])
-      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping_list_items'] })
@@ -133,22 +102,12 @@ export default function ShoppingListPage() {
       const savedUser = localStorage.getItem('fridgemind_user')
       const user = savedUser ? JSON.parse(savedUser) : null
 
-      if (isDemoMode) {
-        // Sync locally
-        const localFridge = JSON.parse(localStorage.getItem('fridgemind_local_items') || '[]')
-        const newFridgeData = boughtItems.map(item => ({
-          id: Math.random().toString(36).substr(2, 9),
-          name: item.name,
-          quantity: 1,
-          unit: 'pcs',
-          category: item.category || 'Other',
-          expiry_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          user_id: user?.id
-        }))
-        localStorage.setItem('fridgemind_local_items', JSON.stringify([...localFridge, ...newFridgeData]))
-        localStorage.setItem('fridgemind_local_shopping', JSON.stringify((items as any[]).filter((i: any) => i.status !== 'bought')))
-        return
-      }
+    mutationFn: async () => {
+      const boughtItems = (items as any[]).filter(i => i.status === 'bought')
+      if (boughtItems.length === 0) return
+
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) throw new Error('Not authenticated')
 
       // 1. Insert into fridge_items
       const fridgeData = boughtItems.map(item => ({
@@ -157,7 +116,7 @@ export default function ShoppingListPage() {
         unit: 'pcs',
         category: item.category || 'Other',
         expiry_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        user_id: user?.id
+        user_id: authUser.id
       }))
 
       const { error: insertError } = await supabase.from('fridge_items').insert(fridgeData)
@@ -170,6 +129,7 @@ export default function ShoppingListPage() {
         .in('id', boughtItems.map(i => i.id))
       
       if (deleteError) throw deleteError
+    },
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping_list_items'] })

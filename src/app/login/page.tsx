@@ -3,15 +3,19 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Refrigerator, Sparkles, ArrowRight, User } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { toast } from 'sonner'
+
+import { createClient } from '@/lib/supabase/client'
+
+const supabase = createClient()
 
 export default function LoginPage() {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const handleAccess = (e: React.FormEvent) => {
+  const handleAccess = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
       toast.error('Please enter your name to continue')
@@ -20,16 +24,46 @@ export default function LoginPage() {
 
     setLoading(true)
 
-    setTimeout(() => {
-      const userId = `user_${Date.now()}`
-      const mockUser = {
-        id: userId,
+    try {
+      // 1. Deterministic Identity (Email based on name)
+      // This allows the user to resume their account by entering the same name
+      const cleanName = name.trim().toLowerCase().replace(/\s+/g, '_')
+      const dummyEmail = `${cleanName}@fridgemind.local`
+      const dummyPassword = 'PermanentPassword123!' // Simple shared secret for demo-style persistence
+
+      // Try to sign in first
+      let { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: dummyEmail,
+        password: dummyPassword
+      })
+
+      // If sign in fails, try to sign up
+      if (signInError) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: dummyEmail,
+          password: dummyPassword,
+          options: {
+            data: { display_name: name.trim() }
+          }
+        })
+        
+        if (signUpError) throw signUpError
+        data = signUpData
+      }
+      
+      if (!data.user) throw new Error('Auth failed')
+
+      // 2. Setup user profile in local storage for UI
+      const userData = {
+        id: data.user.id,
         displayName: name.trim(),
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name.trim())}`
       }
 
-      localStorage.setItem('fridgemind_user', JSON.stringify(mockUser))
-      document.cookie = `demo-mode=true; path=/; max-age=86400`
+      localStorage.setItem('fridgemind_user', JSON.stringify(userData))
+      
+      // 3. Set demo mode to false (we are using real persistence now)
+      document.cookie = `demo-mode=false; path=/; max-age=86400`
 
       toast.success(`Welcome, ${mockUser.displayName}!`, {
         description: 'Your personal FridgeMind is ready.'
@@ -37,11 +71,22 @@ export default function LoginPage() {
 
       router.push('/')
       setTimeout(() => router.refresh(), 100)
-    }, 800)
+    } catch (err: any) {
+      console.error('Login Error:', err)
+      toast.error('Secure access failed. Using offline mode.')
+      
+      // Fallback to old demo mode if Supabase fails
+      const userId = `user_${Date.now()}`
+      localStorage.setItem('fridgemind_user', JSON.stringify({ id: userId, displayName: name.trim() }))
+      document.cookie = `demo-mode=true; path=/; max-age=86400`
+      router.push('/')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const stagger: any = { hidden: {}, visible: { transition: { staggerChildren: 0.09 } } }
-  const fadeUp: any = {
+  const stagger: Variants = { hidden: {}, visible: { transition: { staggerChildren: 0.09 } } }
+  const fadeUp: Variants = {
     hidden:  { opacity: 0, y: 20, filter: 'blur(6px)' },
     visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: [0.21, 0.61, 0.35, 1] } }
   }

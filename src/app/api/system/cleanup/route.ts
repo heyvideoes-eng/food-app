@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { google } from '@ai-sdk/google'
+import { openai } from '@ai-sdk/openai'
 import { generateObject } from 'ai'
 import { z } from 'zod'
+import { FRIDGE_MIND_SYSTEM_PROMPT } from '@/lib/ai-prompt'
 
 export async function POST(req: Request) {
   try {
@@ -21,9 +22,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'No expired items found for cleanup.' })
     }
 
-    // 2. AI WASTE AUDIT: Use Gemini to analyze the impact
+    const taskContext = `
+TASK TYPE: waste_analysis
+Perform a sustainability audit on these wasted food items: ${(expiredItems as any[]).map((i: any) => i.name).join(', ')}. 
+Calculate total financial loss (estimate in USD) and total CO2 impact (kg). 
+For each item, provide a penalty multiplier based on how environmentally expensive it is to produce (e.g., meat is 5, vegetables are 1).
+`
+
+    // 2. AI WASTE AUDIT: Use OpenAI to analyze the impact
     const { object: audit } = await generateObject({
-      model: google('gemini-1.5-flash-latest'),
+      model: openai('gpt-4o-mini'),
       schema: z.object({
         total_value_loss: z.number(),
         total_carbon_kg: z.number(),
@@ -35,12 +43,8 @@ export async function POST(req: Request) {
         }))
       }),
       messages: [
-        {
-          role: 'user',
-          content: `Perform a sustainability audit on these wasted food items: ${(expiredItems as any[]).map((i: any) => i.name).join(', ')}. 
-          Calculate total financial loss (estimate in USD) and total CO2 impact (kg). 
-          For each item, provide a penalty multiplier based on how environmentally expensive it is to produce (e.g., meat is 5, vegetables are 1).`
-        }
+        { role: 'system', content: FRIDGE_MIND_SYSTEM_PROMPT },
+        { role: 'user', content: taskContext }
       ]
     })
 

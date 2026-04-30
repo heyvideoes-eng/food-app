@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { NotificationCenter } from './notification-center'
 import { AddItemModal } from '../modals/add-item-modal'
 import { useStore } from '@/lib/store'
+import { useQuery } from '@tanstack/react-query'
 
 // Primary 5 nav items shown in the bottom bar
 const primaryNav = [
@@ -59,23 +60,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === '/login'
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('fridgemind_user')
-    if (!savedUser && !isLoginPage && !isLandingPage) {
-      router.push('/login')
-    } else if (savedUser) {
-      setUser(JSON.parse(savedUser))
-    }
-    setIsReady(true)
+    // 1. Initial Check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setUser(session.user)
+      } else if (!isLoginPage && !isLandingPage) {
+        router.push('/login')
+      }
+      setIsReady(true)
+    })
+
+    // 2. Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setUser(session.user)
+      } else {
+        setUser(null)
+        if (!isLoginPage && !isLandingPage) {
+          router.push('/login')
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [pathname, router])
+
+  // Fetch Profile for sidebar
+  const { data: profile } = useQuery({
+    queryKey: ['sidebar_profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      return data
+    },
+    enabled: !!user
+  })
 
   // Close more sheet on route change
   useEffect(() => { setShowMore(false) }, [pathname])
 
-  const handleLogout = () => {
-    localStorage.removeItem('fridgemind_user')
-    localStorage.removeItem('fridgemind_whatsapp')
-    document.cookie = "demo-mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
-    setUser(null)
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     router.push('/login')
   }
 
@@ -156,10 +181,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }`}
             >
               <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden">
-                <img src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=Rishi`} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || user?.email}`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold truncate">{user?.displayName || 'Eco Guardian'}</span>
+                <span className="text-sm font-bold truncate">{profile?.full_name || user?.user_metadata?.display_name || 'Guardian'}</span>
                 <span className="text-[10px] uppercase tracking-widest font-bold opacity-40">Verified Identity</span>
               </div>
             </Link>
