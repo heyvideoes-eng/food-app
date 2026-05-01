@@ -28,7 +28,6 @@ export default function RootLayout({
           <NotificationProvider>
             <QueryProvider>
               {/* <CustomCursor /> */}
-              <BackgroundCanvas />
               <AppShell>
                 {children}
               </AppShell>

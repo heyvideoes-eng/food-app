@@ -270,21 +270,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Content Area */}
         <div className={`flex-1 ${isLandingPage ? '' : 'bg-black/5'}`}>
-          <AnimatePresence mode="wait">
-            <motion.div 
-              key={pathname}
-              initial={{ opacity: 0, y: 16, scale: 0.99 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.99 }}
-              transition={{ 
-                duration: 0.35,
-                ease: [0.25, 0.46, 0.45, 0.94]
-              }}
-              className={isLandingPage ? 'w-full' : 'w-full max-w-7xl mx-auto px-4 pt-5 pb-32 md:px-6 lg:px-12 lg:pt-8 lg:pb-12'}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div className={isLandingPage ? 'w-full' : 'w-full max-w-7xl mx-auto px-4 pt-5 pb-32 md:px-6 lg:px-12 lg:pt-8 lg:pb-12'}>
+            {children}
+          </div>
         </div>
 
         {/* ─── Mobile Bottom Navigation ─────────────────────────── */}
