@@ -17,8 +17,8 @@ import {
   Menu,
   X
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
+import { createClient } from '../../lib/supabase/client'
+import { Button } from '../ui/button'
 import { useState, useEffect } from 'react'
 import { useStore } from '@/lib/store'
 import { AddItemModal } from '../modals/add-item-modal'

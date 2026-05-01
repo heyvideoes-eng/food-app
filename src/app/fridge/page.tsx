@@ -28,7 +28,7 @@ import {
   ArrowRight
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '../../lib/supabase/client'
 import { toast } from 'sonner'
 import { differenceInDays, parseISO } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'

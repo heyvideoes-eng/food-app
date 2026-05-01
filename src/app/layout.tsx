@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { Inter, Outfit } from 'next/font/google'
 import './globals.css'
-import { QueryProvider } from '@/components/providers/query-provider'
-import { AppShell } from '@/components/layout/app-shell'
-import { Toaster } from '@/components/ui/sonner'
-import { NotificationProvider } from '@/components/providers/NotificationProvider'
+import { QueryProvider } from '../components/providers/query-provider'
+import { AppShell } from '../components/layout/app-shell'
+import { Toaster } from '../components/ui/sonner'
+import { NotificationProvider } from '../components/providers/notification-provider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-heading' })

@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { 
   BarChart, 
   Bar, 
@@ -28,30 +28,30 @@ import {
   ChevronRight,
   Barcode
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Badge } from '../../components/ui/badge'
+import { Button } from '../../components/ui/button'
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '../../lib/supabase/client'
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
   DialogTrigger 
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from '../../components/ui/dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
 import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "../../components/ui/select"
 
 export default function WasteTrackerPage() {
   const supabase = createClient()

@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../../../../lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { FRIDGE_MIND_SYSTEM_PROMPT } from '@/lib/ai-prompt'
+import { FRIDGE_MIND_SYSTEM_PROMPT } from '../../../../lib/ai-prompt'
 
 export async function POST(req: Request) {
   try {

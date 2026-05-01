@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai'
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../../../../lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { FRIDGE_MIND_SYSTEM_PROMPT } from '@/lib/ai-prompt'
+import { FRIDGE_MIND_SYSTEM_PROMPT } from '../../../../lib/ai-prompt'
 
 export async function POST(req: Request) {
   const supabase = await createClient()
