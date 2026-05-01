@@ -14,8 +14,7 @@ import {
   Leaf, 
   CheckCircle2,
   Phone,
-  Mail,
-  Edit3
+  Plus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +23,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 export default function ProfilePage() {
   const supabase = createClient()
@@ -217,30 +217,30 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-primary px-1">Display Identity</label>
-                  <Input 
+                  <input 
                     value={formName} 
                     onChange={(e) => setFormName(e.target.value)}
-                    className="h-14 rounded-2xl bg-white/5 border-white/10 glass text-white focus:ring-primary/20" 
+                    className="h-14 w-full px-4 rounded-2xl bg-white/5 border border-white/10 glass text-white focus:outline-none focus:ring-1 focus:ring-primary/20" 
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 px-1">WhatsApp Link</label>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400/50" />
-                    <Input 
+                    <input 
                       value={whatsappNumber} 
                       onChange={(e) => setWhatsappNumber(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-white/5 border-white/10 glass text-white font-mono" 
+                      className="h-14 w-full pl-12 pr-4 rounded-2xl bg-white/5 border border-white/10 glass text-white font-mono focus:outline-none" 
                       placeholder="+91..."
                     />
                   </div>
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-primary px-1">Mission Bio</label>
-                  <Input 
+                  <input 
                     value={formBio} 
                     onChange={(e) => setFormBio(e.target.value)}
-                    className="h-14 rounded-2xl bg-white/5 border-white/10 glass text-white" 
+                    className="h-14 w-full px-4 rounded-2xl bg-white/5 border border-white/10 glass text-white focus:outline-none" 
                   />
                 </div>
               </div>
@@ -299,29 +299,5 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
-  )
-}
-
-// Ensure you have these imports at the top
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
-
-function Plus(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="M12 5v14" />
-    </svg>
   )
 }

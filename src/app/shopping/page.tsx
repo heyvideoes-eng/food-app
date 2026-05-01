@@ -25,6 +25,19 @@ import { toast } from 'sonner'
 export default function ShoppingListPage() {
   const supabase = createClient()
   const queryClient = useQueryClient()
+  const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
+
+  const getLocalItems = () => {
+    if (typeof window === 'undefined') return []
+    return JSON.parse(localStorage.getItem('fridgemind_local_shopping') || '[]')
+  }
+
+  const saveLocalItem = (item: any) => {
+    if (typeof window === 'undefined') return
+    const local = getLocalItems()
+    localStorage.setItem('fridgemind_local_shopping', JSON.stringify([...local, { ...item, id: Date.now().toString() }]))
+  }
+
   const [newItemName, setNewItemName] = useState('')
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['shopping_list_items'],
@@ -96,13 +109,6 @@ export default function ShoppingListPage() {
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const boughtItems = (items as any[]).filter((i: any) => i.status === 'bought')
-      if (boughtItems.length === 0) return
-
-      const savedUser = localStorage.getItem('fridgemind_user')
-      const user = savedUser ? JSON.parse(savedUser) : null
-
-    mutationFn: async () => {
       const boughtItems = (items as any[]).filter(i => i.status === 'bought')
       if (boughtItems.length === 0) return
 
@@ -129,7 +135,6 @@ export default function ShoppingListPage() {
         .in('id', boughtItems.map(i => i.id))
       
       if (deleteError) throw deleteError
-    },
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping_list_items'] })
