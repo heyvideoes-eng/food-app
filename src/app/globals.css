@@ -8,106 +8,58 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
   --font-heading: 'Outfit', var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
 }
 
 :root {
-  /* Shader.se inspired Charcoal Dark Palette */
-  --background: #0a0a0b;
-  --foreground: #e4e4e7;
-  
-  --card: rgba(18, 18, 20, 0.4);
-  --card-foreground: #f4f4f5;
-  
-  --popover: #0f0f10;
-  --popover-foreground: #f4f4f5;
+  --background: #050506;
+  --foreground: #ffffff;
   
   --primary: #94a3b8;
-  --primary-foreground: #0a0a0b;
+  --primary-foreground: #050506;
   
-  --secondary: #1e293b;
-  --secondary-foreground: #f1f5f9;
-  
-  --muted: #1e1e21;
+  --muted: #161617;
   --muted-foreground: #71717a;
   
-  --accent: rgba(255, 255, 255, 0.05);
-  --accent-foreground: #f4f4f5;
+  --accent: #27272a;
+  --accent-foreground: #ffffff;
   
-  --destructive: #7f1d1d;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
   --ring: #94a3b8;
   
-  --radius: 1rem;
+  --radius: 0.75rem;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     overflow-x: hidden;
-    /* Only hide cursor on desktop — touch devices need default cursor */
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-  }
-  @media (pointer: fine) {
-    body {
-      pointer-events: auto !important;
-    }
-    button, a, [role="button"] {
-      pointer-events: auto !important;
-      cursor: pointer !important;
-    }
   }
   html {
     @apply scroll-smooth;
     background: var(--background);
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tighter font-heading;
-  }
+}
+
+/* Glassmorphism */
+.glass {
+  @apply bg-white/[0.03] backdrop-blur-xl border border-white/10;
+}
+
+.glass-dark {
+  @apply bg-black/40 backdrop-blur-2xl border border-white/5;
 }
 
 /* Custom Scrollbar */
@@ -125,55 +77,12 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Glassmorphism Utilities */
-.glass {
-  @apply bg-white/[0.03] backdrop-blur-xl border border-white/10;
-}
-
-.glass-dark {
-  @apply bg-black/40 backdrop-blur-2xl border border-white/5;
-}
-
-/* Smooth Scroll Container */
-.lenis.lenis-smooth {
-  height: auto;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis.lenis-scrolling iframe {
-  pointer-events: none;
-}
-
 /* Safe Area Utilities */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 12px);
 }
 .pt-safe {
   padding-top: env(safe-area-inset-top);
-}
-
-/* Mobile Bottom Nav */
-.mobile-nav {
-  padding-bottom: max(env(safe-area-inset-bottom), 16px);
-}
-
-/* Mobile Card Active State */
-@media (max-width: 1024px) {
-  .glass-card-mobile {
-    @apply active:scale-[0.97] transition-transform duration-150;
-  }
-}
-
-/* Smooth tap animation for mobile */
-.tap-scale {
-  @apply transition-transform duration-150 active:scale-[0.96];
 }
 
 /* No scrollbar */
