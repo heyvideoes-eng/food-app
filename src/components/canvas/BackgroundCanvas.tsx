@@ -134,7 +134,7 @@ const BackgroundMaterial = () => {
 
 export default function BackgroundCanvas() {
   return (
-    <div className="fixed inset-0 -z-10 bg-[#0a0a0b]">
+    <div className="fixed inset-0 -z-10 bg-[#0a0a0b] pointer-events-none">
       <Canvas camera={{ position: [0, 0, 1] }}>
         <BackgroundMaterial />
       </Canvas>

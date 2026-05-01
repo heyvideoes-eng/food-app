@@ -25,10 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${outfit.variable} font-sans bg-background text-foreground`} suppressHydrationWarning>
-        <SmoothScrollProvider>
           <NotificationProvider>
             <QueryProvider>
-              <CustomCursor />
+              {/* <CustomCursor /> */}
               <BackgroundCanvas />
               <AppShell>
                 {children}
@@ -36,7 +35,6 @@ export default function RootLayout({
               <Toaster />
             </QueryProvider>
           </NotificationProvider>
-        </SmoothScrollProvider>
       </body>
     </html>
   )
