@@ -8,7 +8,6 @@ import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvide
 import BackgroundCanvas from '@/components/canvas/BackgroundCanvas'
 import CustomCursor from '@/components/ui/CustomCursor'
 import { NotificationProvider } from '@/components/providers/NotificationProvider'
-import { AuthProvider } from '@/components/providers/AuthProvider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-heading' })
@@ -26,20 +25,18 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${outfit.variable} font-sans bg-background text-foreground`} suppressHydrationWarning>
-        <AuthProvider>
-          <SmoothScrollProvider>
-            <NotificationProvider>
-              <QueryProvider>
-                <CustomCursor />
-                <BackgroundCanvas />
-                <AppShell>
-                  {children}
-                </AppShell>
-                <Toaster />
-              </QueryProvider>
-            </NotificationProvider>
-          </SmoothScrollProvider>
-        </AuthProvider>
+        <SmoothScrollProvider>
+          <NotificationProvider>
+            <QueryProvider>
+              <CustomCursor />
+              <BackgroundCanvas />
+              <AppShell>
+                {children}
+              </AppShell>
+              <Toaster />
+            </QueryProvider>
+          </NotificationProvider>
+        </SmoothScrollProvider>
       </body>
     </html>
   )

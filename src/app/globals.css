@@ -93,10 +93,10 @@
   }
   @media (pointer: fine) {
     body {
-      cursor: none !important;
+      /* Remove forced cursor: none for safer fallback */
     }
     button, a, [role="button"] {
-      cursor: none !important;
+      /* Remove forced cursor: none for safer fallback */
     }
   }
   html {
