@@ -11,7 +11,7 @@ export async function proxy(request: NextRequest) {
 
   // ── 1. Always bypass Next.js internals and API routes ──
   if (BYPASS_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
-    return NextResponse.next({ request })
+    return NextResponse.next()
   }
 
   // ── 2. Always allow public pages ──
@@ -20,22 +20,21 @@ export async function proxy(request: NextRequest) {
     const isDemoOnLogin =
       pathname === '/login' &&
       request.cookies.get('demo-mode')?.value === 'true'
+    
     if (isDemoOnLogin) {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
-    return NextResponse.next({ request })
+    return NextResponse.next()
   }
 
-  // ── 4. Supabase session check (real auth) ──
-  // Use placeholder values so the build never crashes when env vars are absent
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_anon_key'
+  // ── 3. Handle Auth ──
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
 
-  let supabaseResponse = NextResponse.next({ request })
+  // Create an initial response
+  let response = NextResponse.next()
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
@@ -43,42 +42,42 @@ export async function proxy(request: NextRequest) {
         return request.cookies.getAll()
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        supabaseResponse = NextResponse.next({ request })
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          response.cookies.set(name, value, options)
         )
       },
     },
   })
 
-  let user = null
   try {
-    // Only attempt Supabase auth if the URL looks real (not placeholder)
+    // Only attempt Supabase auth if the URL looks real
     if (!supabaseUrl.includes('placeholder')) {
-      const { data } = await supabase.auth.getUser()
-      user = data.user
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        // Authenticated user trying to visit /login — bounce to home
+        if (pathname === '/login') {
+          const url = request.nextUrl.clone()
+          url.pathname = '/'
+          return NextResponse.redirect(url)
+        }
+        return response
+      }
     }
   } catch (e) {
-    // Backend unreachable — fail open (allow access) to avoid locking users out
-    console.warn('Proxy: Supabase auth check failed, allowing access:', e)
-    return supabaseResponse
+    console.warn('Proxy: Auth check failed, failing open:', e)
+    return response
   }
 
-  if (user) {
-    // Authenticated user trying to visit /login — bounce to home
-    if (pathname.startsWith('/login')) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
-    }
-    return supabaseResponse
+  // ── 4. No session, no demo mode — check for demo cookie ──
+  const isDemoMode = request.cookies.get('demo-mode')?.value === 'true'
+  if (isDemoMode) {
+    return response
   }
 
-  // ── 5. No session, no demo mode — redirect to login ──
+  // ── 5. Redirect to login ──
   const loginUrl = request.nextUrl.clone()
   loginUrl.pathname = '/login'
-  // Preserve intended destination for post-login redirect
   loginUrl.searchParams.set('next', pathname)
   return NextResponse.redirect(loginUrl)
 }
