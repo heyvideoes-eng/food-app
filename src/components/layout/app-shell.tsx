@@ -269,7 +269,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Content Area */}
-        <div className={`flex-1 ${isLandingPage ? '' : 'bg-black/5'}`}>
+        <div className={`flex-1 ${isLandingPage ? '' : 'bg-black/5'} relative z-10`}>
           <div className={isLandingPage ? 'w-full' : 'w-full max-w-7xl mx-auto px-4 pt-5 pb-32 md:px-6 lg:px-12 lg:pt-8 lg:pb-12'}>
             {children}
           </div>

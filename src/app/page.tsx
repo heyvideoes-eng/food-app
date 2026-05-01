@@ -21,7 +21,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 
 export default function Home() {
-  const containerRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
   const [user, setUser] = useState<any>(null)
 
@@ -179,7 +178,7 @@ export default function Home() {
   }
 
   return (
-    <main ref={containerRef} className="relative w-full">
+    <main className="relative w-full">
       {/* Hero section for non-logged-in users (same as before but cleaner) */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-5 pt-32 pb-24 overflow-hidden text-center">
         <div className="absolute inset-0 pointer-events-none">
