@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { useRef, useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useQuery } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)

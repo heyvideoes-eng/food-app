@@ -76,11 +76,19 @@ Extract grocery items from this receipt image. For each item, provide the name, 
       }
     }
 
-    const object = visionResult
+    const object = visionResult as {
+      items: Array<{
+        name: string;
+        quantity: number;
+        unit: string;
+        category: string;
+        estimated_expiry_days: number;
+      }>
+    }
 
     // AUTOMATION: Persist to Database if not in demo mode
     if (!isDemoMode && user) {
-      const itemsToInsert = object.items.map(item => ({
+      const itemsToInsert = object.items.map((item) => ({
         user_id: user.id,
         name: item.name,
         quantity: item.quantity,

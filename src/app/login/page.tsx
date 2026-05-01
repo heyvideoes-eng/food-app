@@ -31,11 +31,15 @@ export default function LoginPage() {
       const dummyEmail = `${cleanName}@fridgemind.local`
       const dummyPassword = 'PermanentPassword123!' // Simple shared secret for demo-style persistence
 
+      let authResult;
+      
       // Try to sign in first
-      let { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: dummyEmail,
         password: dummyPassword
       })
+
+      authResult = signInData
 
       // If sign in fails, try to sign up
       if (signInError) {
@@ -48,14 +52,14 @@ export default function LoginPage() {
         })
         
         if (signUpError) throw signUpError
-        data = signUpData
+        authResult = signUpData
       }
       
-      if (!data.user) throw new Error('Auth failed')
+      if (!authResult?.user) throw new Error('Auth failed')
 
       // 2. Setup user profile in local storage for UI
       const userData = {
-        id: data.user.id,
+        id: authResult.user.id,
         displayName: name.trim(),
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name.trim())}`
       }
@@ -65,12 +69,12 @@ export default function LoginPage() {
       // 3. Set demo mode to false (we are using real persistence now)
       document.cookie = `demo-mode=false; path=/; max-age=86400`
 
-      toast.success(`Welcome, ${mockUser.displayName}!`, {
+      toast.success(`Welcome, ${userData.displayName}!`, {
         description: 'Your personal FridgeMind is ready.'
       })
 
       router.push('/')
-      setTimeout(() => router.refresh(), 100)
+      router.refresh()
     } catch (err: any) {
       console.error('Login Error:', err)
       toast.error('Secure access failed. Using offline mode.')

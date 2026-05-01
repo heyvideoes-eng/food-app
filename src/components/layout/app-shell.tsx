@@ -55,6 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const { setIsAddModalOpen } = useStore()
+  const supabase = createClient()
   
   const isLandingPage = pathname === '/'
   const isLoginPage = pathname === '/login'

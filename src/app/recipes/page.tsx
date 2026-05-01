@@ -25,6 +25,7 @@ import { useStore } from '@/lib/store'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Recipe {
   id: string
@@ -54,6 +55,7 @@ export default function RecipesPage() {
   const [selectedItems, setSelectedItems] = useState<any[]>([])
   
   const supabase = createClient()
+  const queryClient = useQueryClient()
   const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
 
   useEffect(() => {

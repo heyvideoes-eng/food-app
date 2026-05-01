@@ -21,6 +21,7 @@ import ReactMarkdown from 'react-markdown'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { useQuery } from '@tanstack/react-query'
 
 export default function NutritionPage() {
   const isDemoMode = (typeof document !== 'undefined' && document.cookie.includes('demo-mode=true')) || !process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -30,6 +31,21 @@ export default function NutritionPage() {
     onError: (err: Error) => {
       console.error('Chat Error:', err)
       toast.error('Could not reach the AI Nutritionist. Please check your connection.')
+    }
+  })
+
+  // Add stats fetching
+  const { data: stats = { calories: 0, protein: 0, carbs: 0, fats: 0 }, isLoading: isStatsLoading } = useQuery({
+    queryKey: ['nutrition_stats'],
+    queryFn: async () => {
+      // In a real app, this would fetch from a /api/nutrition/stats or similar
+      // For now, we'll return some realistic looking data or mock it based on user data
+      return {
+        calories: 1850,
+        protein: 142,
+        carbs: 210,
+        fats: 65
+      }
     }
   })
 
