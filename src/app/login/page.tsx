@@ -1,167 +1,101 @@
 'use client'
 
-import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { 
+  ArrowRight, 
+  User, 
+  Refrigerator,
+  Lock,
+  Sparkles
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Refrigerator, Sparkles, ArrowRight, User } from 'lucide-react'
-import { motion, Variants } from 'framer-motion'
+import { useState } from 'react'
 import { toast } from 'sonner'
-
-import { createClient } from '@/lib/supabase/client'
-
-const supabase = createClient()
 
 export default function LoginPage() {
   const [name, setName] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  const handleAccess = async (e: React.FormEvent) => {
+  const handleInitialize = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      toast.error('Please enter your name to continue')
+      toast.error('Identity required to initialize node.')
       return
     }
 
-    setLoading(true)
-
-    try {
-      // 1. Deterministic Identity (Email based on name)
-      // This allows the user to resume their account by entering the same name
-      const cleanName = name.trim().toLowerCase().replace(/\s+/g, '_')
-      const dummyEmail = `${cleanName}@fridgemind.local`
-      const dummyPassword = 'PermanentPassword123!' // Simple shared secret for demo-style persistence
-
-      let authResult;
-      
-      // Try to sign in first
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: dummyEmail,
-        password: dummyPassword
-      })
-
-      authResult = signInData
-
-      // If sign in fails, try to sign up
-      if (signInError) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: dummyEmail,
-          password: dummyPassword,
-          options: {
-            data: { display_name: name.trim() }
-          }
-        })
-        
-        if (signUpError) throw signUpError
-        authResult = signUpData
-      }
-      
-      if (!authResult?.user) throw new Error('Auth failed')
-
-      // 2. Setup user profile in local storage for UI
-      const userData = {
-        id: authResult.user.id,
+    setIsLoading(true)
+    
+    // Simulate system initialization
+    setTimeout(() => {
+      localStorage.setItem('fridgemind_user', JSON.stringify({
         displayName: name.trim(),
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name.trim())}`
-      }
-
-      localStorage.setItem('fridgemind_user', JSON.stringify(userData))
-      
-      // 3. Set demo mode to false (we are using real persistence now)
-      document.cookie = `demo-mode=false; path=/; max-age=86400`
-
-      toast.success(`Welcome, ${userData.displayName}!`, {
-        description: 'Your personal FridgeMind is ready.'
-      })
-
-      router.push('/')
-      router.refresh()
-    } catch (err: any) {
-      console.error('Login Error:', err)
-      toast.error('Secure access failed. Using offline mode.')
-      
-      // Fallback to old demo mode if Supabase fails
-      const userId = `user_${Date.now()}`
-      localStorage.setItem('fridgemind_user', JSON.stringify({ id: userId, displayName: name.trim() }))
+        id: `node_${Date.now()}`,
+        status: 'active'
+      }))
       document.cookie = `demo-mode=true; path=/; max-age=86400`
-      router.push('/')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const stagger: Variants = { hidden: {}, visible: { transition: { staggerChildren: 0.09 } } }
-  const fadeUp: Variants = {
-    hidden:  { opacity: 0, y: 20, filter: 'blur(6px)' },
-    visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.7, ease: [0.21, 0.61, 0.35, 1] } }
+      toast.success(`Welcome to the Grid, ${name.trim()}`)
+      router.push('/dashboard')
+    }, 1500)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 relative overflow-hidden">
-      {/* Ambient bg */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/[0.06] blur-[120px]" />
-      </div>
-
-      <motion.div
-        variants={stagger}
-        initial="hidden"
-        animate="visible"
-        className="w-full max-w-sm relative z-10"
+    <main className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden bg-[#050508]">
+      {/* Background Orbs */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full pointer-events-none" />
+      
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md relative z-10"
       >
-        {/* Icon */}
-        <motion.div variants={fadeUp} className="flex justify-center mb-8">
-          <div className="w-20 h-20 rounded-[2rem] bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Refrigerator className="w-10 h-10 text-primary" />
+        <div className="text-center mb-12 space-y-6">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2.5rem] bg-primary/10 border border-primary/20 text-primary mb-4 animate-float">
+            <Refrigerator className="h-10 w-10" />
           </div>
-        </motion.div>
+          <div className="space-y-2">
+            <h1 className="text-4xl font-heading font-black text-white tracking-tight">Access Node</h1>
+            <p className="text-white/40 text-sm font-light tracking-widest uppercase">FridgeMind Zero Neural Link</p>
+          </div>
+        </div>
 
-        {/* Heading */}
-        <motion.div variants={fadeUp} className="text-center mb-10 space-y-2">
-          <h1 className="text-4xl font-heading text-white tracking-tight">FridgeMind</h1>
-          <p className="text-white/40 text-sm font-light">Your intelligent kitchen companion</p>
-        </motion.div>
-
-        {/* Form */}
-        <motion.form
-          variants={fadeUp}
-          onSubmit={handleAccess}
-          className="space-y-4"
-        >
-          <div className="relative">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 pointer-events-none" />
+        <form onSubmit={handleInitialize} className="space-y-6">
+          <div className="relative group">
+            <User className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-white/20 group-focus-within:text-primary transition-colors" />
             <input
-              id="name"
               type="text"
-              autoComplete="name"
-              placeholder="Enter your name"
+              placeholder="Identity Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="w-full h-20 pl-16 pr-8 rounded-3xl bg-white/5 border border-white/10 text-white text-lg placeholder:text-white/10 focus:outline-none focus:border-primary/50 focus:bg-white/[0.08] transition-all duration-500"
               autoFocus
-              required
-              className="w-full h-16 pl-12 pr-5 rounded-2xl bg-white/5 border border-white/10 text-white text-base placeholder:text-white/20 focus:outline-none focus:border-primary/40 focus:bg-white/[0.07] transition-all duration-300"
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading || !name.trim()}
-            className="w-full h-16 rounded-2xl bg-white text-black font-black text-sm tracking-widest uppercase flex items-center justify-center gap-3 hover:bg-white/90 active:scale-[0.98] transition-all duration-200 disabled:opacity-40 disabled:scale-100 shadow-2xl shadow-white/10 tap-scale"
+            disabled={isLoading || !name.trim()}
+            className="w-full h-20 rounded-3xl bg-white text-black font-black text-sm tracking-[0.3em] uppercase flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl disabled:opacity-50"
           >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+            {isLoading ? (
+              <div className="h-6 w-6 border-2 border-black/30 border-t-black rounded-full animate-spin" />
             ) : (
-              <>Enter FridgeMind <ArrowRight className="w-4 h-4" /></>
+              <>Initialize Connection <ArrowRight className="h-5 w-5" /></>
             )}
           </button>
-        </motion.form>
+        </form>
 
-        {/* Footer note */}
-        <motion.div variants={fadeUp} className="mt-8 text-center">
-          <p className="text-[11px] text-white/20 font-bold uppercase tracking-widest">
-            No account needed · Instant access
-          </p>
-        </motion.div>
+        <div className="mt-12 flex items-center justify-center gap-8 opacity-20">
+          <div className="flex items-center gap-2">
+            <Lock className="h-3 w-3" />
+            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Encrypted</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3 w-3" />
+            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Neural AI</span>
+          </div>
+        </div>
       </motion.div>
-    </div>
+    </main>
   )
 }
